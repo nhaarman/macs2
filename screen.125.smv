@@ -1,0 +1,103 @@
+MODULE square(initValue, left, top, right, bottom, dleft, dtop, dright, dbottom, cil, cit, cir, cib, dcil, dcit, dcir, dcib, direction) 
+
+  VAR 
+    value    : {w, m, g, e, b, bog, mog}; 
+
+  ASSIGN 
+    init(value) := initValue; 
+
+    -- On the basis of move, assign values to variables below 
+    next(value) := 
+        case 
+            value = g & comingBox                   : bog; 
+            (value = g | value = bog) & comingMan   : mog; 
+            comingBox                               : b; 
+            comingMan                               : m; 
+            value = mog & isMovingSomewhere         : g; 
+            value = m & isMovingSomewhere           : e; 
+            TRUE                                    : value; 
+        esac; 
+ 
+  DEFINE 
+ 
+--  Where can we go? 
+    canGoLeft := 
+        left = e | left = g | (left = b & (dleft = e | dleft = g)) | (left = bog & (dleft = e | dleft = g)); 
+    canGoUp := 
+        top = e | top = g | (top = b & (dtop = e | dtop = g)) | (top = bog & (dtop = e | dtop = g)); 
+    canGoRight := 
+        right = e | right = g | (right = b & (dright = e | dright = g)) | (right = bog & (dright = e | dright = g)); 
+    canGoDown := 
+        bottom = e | bottom = g | (bottom = b & (dbottom = e | dbottom = g)) | (bottom = bog & (dbottom = e | dbottom = g)); 
+ 
+-- Additional defines 
+    isAMan := value = m | value = mog; 
+    isMovingLeft := isAMan & direction=l & canGoLeft; 
+    isMovingUp := isAMan & direction=u & canGoUp; 
+    isMovingRight := isAMan & direction=r & canGoRight; 
+    isMovingDown := isAMan & direction=d & canGoDown; 
+    isMovingSomewhere := isMovingLeft | isMovingUp | isMovingRight | isMovingDown; 
+ 
+-- Single carries 
+    col := isMovingLeft; 
+    cot := isMovingUp; 
+    cor := isMovingRight; 
+    cob := isMovingDown; 
+ 
+-- Double carries 
+    dcol := isMovingLeft & (left = b | left = bog); 
+    dcot := isMovingUp & (top = b | top = bog); 
+    dcor := isMovingRight & (right = b | right = bog); 
+    dcob := isMovingDown & (bottom = b | bottom = bog); 
+ 
+-- Carry in 
+    comingMan := cil | cit | cir | cib; 
+    comingBox := dcil | dcit | dcir | dcib; 
+ 
+MODULE main 
+  IVAR 
+    move     : {l, u, r, d}; 
+  VAR 
+	s0_0	: square( w, w, w, s0_1.value, s1_0.value, w, w, s0_2.value, s2_0.value, FALSE, FALSE, s0_1.col, s1_0.cot, FALSE, FALSE, s0_2.dcol, s2_0.dcot, move );
+	s0_1	: square( w, s0_0.value, w, s0_2.value, s1_1.value, w, w, s0_3.value, s2_1.value, s0_0.cor, FALSE, s0_2.col, s1_1.cot, FALSE, FALSE, s0_3.dcol, s2_1.dcot, move );
+	s0_2	: square( w, s0_1.value, w, s0_3.value, s1_2.value, s0_0.value, w, s0_4.value, s2_2.value, s0_1.cor, FALSE, s0_3.col, s1_2.cot, s0_0.dcor, FALSE, s0_4.dcol, s2_2.dcot, move );
+	s0_3	: square( w, s0_2.value, w, s0_4.value, s1_3.value, s0_1.value, w, s0_5.value, s2_3.value, s0_2.cor, FALSE, s0_4.col, s1_3.cot, s0_1.dcor, FALSE, s0_5.dcol, s2_3.dcot, move );
+	s0_4	: square( w, s0_3.value, w, s0_5.value, s1_4.value, s0_2.value, w, w, s2_4.value, s0_3.cor, FALSE, s0_5.col, s1_4.cot, s0_2.dcor, FALSE, FALSE, s2_4.dcot, move );
+	s0_5	: square( w, s0_4.value, w, w, s1_5.value, s0_3.value, w, w, s2_5.value, s0_4.cor, FALSE, FALSE, s1_5.cot, s0_3.dcor, FALSE, FALSE, s2_5.dcot, move );
+
+	s1_0	: square( w, w, s0_0.value, s1_1.value, s2_0.value, w, w, s1_2.value, s3_0.value, FALSE, s0_0.cob, s1_1.col, s2_0.cot, FALSE, FALSE, s1_2.dcol, s3_0.dcot, move );
+	s1_1	: square( e, s1_0.value, s0_1.value, s1_2.value, s2_1.value, w, w, s1_3.value, s3_1.value, s1_0.cor, s0_1.cob, s1_2.col, s2_1.cot, FALSE, FALSE, s1_3.dcol, s3_1.dcot, move );
+	s1_2	: square( e, s1_1.value, s0_2.value, s1_3.value, s2_2.value, s1_0.value, w, s1_4.value, s3_2.value, s1_1.cor, s0_2.cob, s1_3.col, s2_2.cot, s1_0.dcor, FALSE, s1_4.dcol, s3_2.dcot, move );
+	s1_3	: square( w, s1_2.value, s0_3.value, s1_4.value, s2_3.value, s1_1.value, w, s1_5.value, s3_3.value, s1_2.cor, s0_3.cob, s1_4.col, s2_3.cot, s1_1.dcor, FALSE, s1_5.dcol, s3_3.dcot, move );
+	s1_4	: square( w, s1_3.value, s0_4.value, s1_5.value, s2_4.value, s1_2.value, w, w, s3_4.value, s1_3.cor, s0_4.cob, s1_5.col, s2_4.cot, s1_2.dcor, FALSE, FALSE, s3_4.dcot, move );
+	s1_5	: square( w, s1_4.value, s0_5.value, w, s2_5.value, s1_3.value, w, w, s3_5.value, s1_4.cor, s0_5.cob, FALSE, s2_5.cot, s1_3.dcor, FALSE, FALSE, s3_5.dcot, move );
+
+	s2_0	: square( g, w, s1_0.value, s2_1.value, s3_0.value, w, s0_0.value, s2_2.value, s4_0.value, FALSE, s1_0.cob, s2_1.col, s3_0.cot, FALSE, s0_0.dcob, s2_2.dcol, s4_0.dcot, move );
+	s2_1	: square( g, s2_0.value, s1_1.value, s2_2.value, s3_1.value, w, s0_1.value, s2_3.value, s4_1.value, s2_0.cor, s1_1.cob, s2_2.col, s3_1.cot, FALSE, s0_1.dcob, s2_3.dcol, s4_1.dcot, move );
+	s2_2	: square( b, s2_1.value, s1_2.value, s2_3.value, s3_2.value, s2_0.value, s0_2.value, s2_4.value, s4_2.value, s2_1.cor, s1_2.cob, s2_3.col, s3_2.cot, s2_0.dcor, s0_2.dcob, s2_4.dcol, s4_2.dcot, move );
+	s2_3	: square( e, s2_2.value, s1_3.value, s2_4.value, s3_3.value, s2_1.value, s0_3.value, s2_5.value, s4_3.value, s2_2.cor, s1_3.cob, s2_4.col, s3_3.cot, s2_1.dcor, s0_3.dcob, s2_5.dcol, s4_3.dcot, move );
+	s2_4	: square( e, s2_3.value, s1_4.value, s2_5.value, s3_4.value, s2_2.value, s0_4.value, w, s4_4.value, s2_3.cor, s1_4.cob, s2_5.col, s3_4.cot, s2_2.dcor, s0_4.dcob, FALSE, s4_4.dcot, move );
+	s2_5	: square( g, s2_4.value, s1_5.value, w, s3_5.value, s2_3.value, s0_5.value, w, s4_5.value, s2_4.cor, s1_5.cob, FALSE, s3_5.cot, s2_3.dcor, s0_5.dcob, FALSE, s4_5.dcot, move );
+
+	s3_0	: square( e, w, s2_0.value, s3_1.value, s4_0.value, w, s1_0.value, s3_2.value, s5_0.value, FALSE, s2_0.cob, s3_1.col, s4_0.cot, FALSE, s1_0.dcob, s3_2.dcol, s5_0.dcot, move );
+	s3_1	: square( w, s3_0.value, s2_1.value, s3_2.value, s4_1.value, w, s1_1.value, s3_3.value, s5_1.value, s3_0.cor, s2_1.cob, s3_2.col, s4_1.cot, FALSE, s1_1.dcob, s3_3.dcol, s5_1.dcot, move );
+	s3_2	: square( b, s3_1.value, s2_2.value, s3_3.value, s4_2.value, s3_0.value, s1_2.value, s3_4.value, s5_2.value, s3_1.cor, s2_2.cob, s3_3.col, s4_2.cot, s3_0.dcor, s1_2.dcob, s3_4.dcol, s5_2.dcot, move );
+	s3_3	: square( e, s3_2.value, s2_3.value, s3_4.value, s4_3.value, s3_1.value, s1_3.value, s3_5.value, s5_3.value, s3_2.cor, s2_3.cob, s3_4.col, s4_3.cot, s3_1.dcor, s1_3.dcob, s3_5.dcol, s5_3.dcot, move );
+	s3_4	: square( b, s3_3.value, s2_4.value, s3_5.value, s4_4.value, s3_2.value, s1_4.value, w, s5_4.value, s3_3.cor, s2_4.cob, s3_5.col, s4_4.cot, s3_2.dcor, s1_4.dcob, FALSE, s5_4.dcot, move );
+	s3_5	: square( e, s3_4.value, s2_5.value, w, s4_5.value, s3_3.value, s1_5.value, w, s5_5.value, s3_4.cor, s2_5.cob, FALSE, s4_5.cot, s3_3.dcor, s1_5.dcob, FALSE, s5_5.dcot, move );
+
+	s4_0	: square( m, w, s3_0.value, s4_1.value, s5_0.value, w, s2_0.value, s4_2.value, w, FALSE, s3_0.cob, s4_1.col, s5_0.cot, FALSE, s2_0.dcob, s4_2.dcol, FALSE, move );
+	s4_1	: square( e, s4_0.value, s3_1.value, s4_2.value, s5_1.value, w, s2_1.value, s4_3.value, w, s4_0.cor, s3_1.cob, s4_2.col, s5_1.cot, FALSE, s2_1.dcob, s4_3.dcol, FALSE, move );
+	s4_2	: square( e, s4_1.value, s3_2.value, s4_3.value, s5_2.value, s4_0.value, s2_2.value, s4_4.value, w, s4_1.cor, s3_2.cob, s4_3.col, s5_2.cot, s4_0.dcor, s2_2.dcob, s4_4.dcol, FALSE, move );
+	s4_3	: square( w, s4_2.value, s3_3.value, s4_4.value, s5_3.value, s4_1.value, s2_3.value, s4_5.value, w, s4_2.cor, s3_3.cob, s4_4.col, s5_3.cot, s4_1.dcor, s2_3.dcob, s4_5.dcol, FALSE, move );
+	s4_4	: square( e, s4_3.value, s3_4.value, s4_5.value, s5_4.value, s4_2.value, s2_4.value, w, w, s4_3.cor, s3_4.cob, s4_5.col, s5_4.cot, s4_2.dcor, s2_4.dcob, FALSE, FALSE, move );
+	s4_5	: square( e, s4_4.value, s3_5.value, w, s5_5.value, s4_3.value, s2_5.value, w, w, s4_4.cor, s3_5.cob, FALSE, s5_5.cot, s4_3.dcor, s2_5.dcob, FALSE, FALSE, move );
+
+	s5_0	: square( w, w, s4_0.value, s5_1.value, w, w, s3_0.value, s5_2.value, w, FALSE, s4_0.cob, s5_1.col, FALSE, FALSE, s3_0.dcob, s5_2.dcol, FALSE, move );
+	s5_1	: square( w, s5_0.value, s4_1.value, s5_2.value, w, w, s3_1.value, s5_3.value, w, s5_0.cor, s4_1.cob, s5_2.col, FALSE, FALSE, s3_1.dcob, s5_3.dcol, FALSE, move );
+	s5_2	: square( w, s5_1.value, s4_2.value, s5_3.value, w, s5_0.value, s3_2.value, s5_4.value, w, s5_1.cor, s4_2.cob, s5_3.col, FALSE, s5_0.dcor, s3_2.dcob, s5_4.dcol, FALSE, move );
+	s5_3	: square( w, s5_2.value, s4_3.value, s5_4.value, w, s5_1.value, s3_3.value, s5_5.value, w, s5_2.cor, s4_3.cob, s5_4.col, FALSE, s5_1.dcor, s3_3.dcob, s5_5.dcol, FALSE, move );
+	s5_4	: square( e, s5_3.value, s4_4.value, s5_5.value, w, s5_2.value, s3_4.value, w, w, s5_3.cor, s4_4.cob, s5_5.col, FALSE, s5_2.dcor, s3_4.dcob, FALSE, FALSE, move );
+	s5_5	: square( e, s5_4.value, s4_5.value, w, w, s5_3.value, s3_5.value, w, w, s5_4.cor, s4_5.cob, FALSE, FALSE, s5_3.dcor, s3_5.dcob, FALSE, FALSE, move );
+
+	SPEC AG ! (s2_0.value = bog & s2_1.value = bog & s2_5.value = bog)

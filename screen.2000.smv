@@ -1,0 +1,76 @@
+MODULE square(initValue, left, top, right, bottom, dleft, dtop, dright, dbottom, cil, cit, cir, cib, dcil, dcit, dcir, dcib, direction) 
+
+  VAR 
+    value    : {w, m, g, e, b, bog, mog}; 
+
+  ASSIGN 
+    init(value) := initValue; 
+
+    -- On the basis of move, assign values to variables below 
+    next(value) := 
+        case 
+            value = g & comingBox                   : bog; 
+            (value = g | value = bog) & comingMan   : mog; 
+            comingBox                               : b; 
+            comingMan                               : m; 
+            value = mog & isMovingSomewhere         : g; 
+            value = m & isMovingSomewhere           : e; 
+            TRUE                                    : value; 
+        esac; 
+ 
+  DEFINE 
+ 
+--  Where can we go? 
+    canGoLeft := 
+        left = e | left = g | (left = b & (dleft = e | dleft = g)) | (left = bog & (dleft = e | dleft = g)); 
+    canGoUp := 
+        top = e | top = g | (top = b & (dtop = e | dtop = g)) | (top = bog & (dtop = e | dtop = g)); 
+    canGoRight := 
+        right = e | right = g | (right = b & (dright = e | dright = g)) | (right = bog & (dright = e | dright = g)); 
+    canGoDown := 
+        bottom = e | bottom = g | (bottom = b & (dbottom = e | dbottom = g)) | (bottom = bog & (dbottom = e | dbottom = g)); 
+ 
+-- Additional defines 
+    isAMan := value = m | value = mog; 
+    isMovingLeft := isAMan & direction=l & canGoLeft; 
+    isMovingUp := isAMan & direction=u & canGoUp; 
+    isMovingRight := isAMan & direction=r & canGoRight; 
+    isMovingDown := isAMan & direction=d & canGoDown; 
+    isMovingSomewhere := isMovingLeft | isMovingUp | isMovingRight | isMovingDown; 
+ 
+-- Single carries 
+    col := isMovingLeft; 
+    cot := isMovingUp; 
+    cor := isMovingRight; 
+    cob := isMovingDown; 
+ 
+-- Double carries 
+    dcol := isMovingLeft & (left = b | left = bog); 
+    dcot := isMovingUp & (top = b | top = bog); 
+    dcor := isMovingRight & (right = b | right = bog); 
+    dcob := isMovingDown & (bottom = b | bottom = bog); 
+ 
+-- Carry in 
+    comingMan := cil | cit | cir | cib; 
+    comingBox := dcil | dcit | dcir | dcib; 
+ 
+MODULE main 
+  IVAR 
+    move     : {l, u, r, d}; 
+  VAR 
+	s0_0	: square( e, w, w, s0_1.value, s1_0.value, w, w, s0_2.value, s2_0.value, FALSE, FALSE, s0_1.col, s1_0.cot, FALSE, FALSE, s0_2.dcol, s2_0.dcot, move );
+	s0_1	: square( e, s0_0.value, w, s0_2.value, s1_1.value, w, w, s0_3.value, s2_1.value, s0_0.cor, FALSE, s0_2.col, s1_1.cot, FALSE, FALSE, s0_3.dcol, s2_1.dcot, move );
+	s0_2	: square( e, s0_1.value, w, s0_3.value, s1_2.value, s0_0.value, w, w, s2_2.value, s0_1.cor, FALSE, s0_3.col, s1_2.cot, s0_0.dcor, FALSE, FALSE, s2_2.dcot, move );
+	s0_3	: square( e, s0_2.value, w, w, s1_3.value, s0_1.value, w, w, s2_3.value, s0_2.cor, FALSE, FALSE, s1_3.cot, s0_1.dcor, FALSE, FALSE, s2_3.dcot, move );
+
+	s1_0	: square( m, w, s0_0.value, s1_1.value, s2_0.value, w, w, s1_2.value, w, FALSE, s0_0.cob, s1_1.col, s2_0.cot, FALSE, FALSE, s1_2.dcol, FALSE, move );
+	s1_1	: square( e, s1_0.value, s0_1.value, s1_2.value, s2_1.value, w, w, s1_3.value, w, s1_0.cor, s0_1.cob, s1_2.col, s2_1.cot, FALSE, FALSE, s1_3.dcol, FALSE, move );
+	s1_2	: square( b, s1_1.value, s0_2.value, s1_3.value, s2_2.value, s1_0.value, w, w, w, s1_1.cor, s0_2.cob, s1_3.col, s2_2.cot, s1_0.dcor, FALSE, FALSE, FALSE, move );
+	s1_3	: square( e, s1_2.value, s0_3.value, w, s2_3.value, s1_1.value, w, w, w, s1_2.cor, s0_3.cob, FALSE, s2_3.cot, s1_1.dcor, FALSE, FALSE, FALSE, move );
+
+	s2_0	: square( e, w, s1_0.value, s2_1.value, w, w, s0_0.value, s2_2.value, w, FALSE, s1_0.cob, s2_1.col, FALSE, FALSE, s0_0.dcob, s2_2.dcol, FALSE, move );
+	s2_1	: square( e, s2_0.value, s1_1.value, s2_2.value, w, w, s0_1.value, s2_3.value, w, s2_0.cor, s1_1.cob, s2_2.col, FALSE, FALSE, s0_1.dcob, s2_3.dcol, FALSE, move );
+	s2_2	: square( e, s2_1.value, s1_2.value, s2_3.value, w, s2_0.value, s0_2.value, w, w, s2_1.cor, s1_2.cob, s2_3.col, FALSE, s2_0.dcor, s0_2.dcob, FALSE, FALSE, move );
+	s2_3	: square( g, s2_2.value, s1_3.value, w, w, s2_1.value, s0_3.value, w, w, s2_2.cor, s1_3.cob, FALSE, FALSE, s2_1.dcor, s0_3.dcob, FALSE, FALSE, move );
+
+	SPEC AG ! (s2_3.value = bog)
