@@ -1,9 +1,0 @@
-This assumes NuSMV is available in your PATH, and cmake is installed, using Linux.
-
-To compile and run the generator:
-
-> cmake -G "Unix Makefiles"
-> make
-> ./sokoban_nusmv_generator <screen input>
-
-Replace <screen input> by the path to a Sokoban screen. The program will ask to run NuSMV, and display the counter example if any.
