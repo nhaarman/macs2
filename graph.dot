@@ -26,3 +26,14 @@ digraph G {
 9 -> 1 [style=dotted];
 9 -> 0 [style=filled];
 }
+digraph G {
+0 [shape=box, label="0", style=filled, shape=box, height=0.3, width=0.3];
+1 [shape=box, label="1", style=filled, shape=box, height=0.3, width=0.3];
+2 [label="7"];
+2 -> 0 [style=dotted];
+2 -> 1 [style=filled];
+}
+digraph G {
+0 [shape=box, label="0", style=filled, shape=box, height=0.3, width=0.3];
+1 [shape=box, label="1", style=filled, shape=box, height=0.3, width=0.3];
+}
