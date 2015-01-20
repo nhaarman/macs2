@@ -1,9 +1,10 @@
 package sokoban;
 
+import net.sf.javabdd.BDD;
+import net.sf.javabdd.BDDFactory;
+
 public class Sokoban {
 
-  public static void main(String[] args) {
-    System.out.println("Hello world!");
-  }
+
 
 }

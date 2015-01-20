@@ -8,5 +8,7 @@ repositories {
 }
 
 dependencies {
+    compile files('libs/javabdd-1.0b2.jar')
+    
     testCompile group: 'junit', name: 'junit', version: '4.11'
 }
