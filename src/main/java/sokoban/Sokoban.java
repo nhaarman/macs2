@@ -1,99 +1,61 @@
 package sokoban;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.List;
-import java.util.function.Consumer;
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 
-import static java.util.stream.Collectors.toList;
+import java.io.File;
+import java.io.IOException;
 
 public class Sokoban {
 
-  private final Parser mParser = new Parser();
-
-  private final SmvWriter mSmvWriter = new SmvWriter();
-
-  public static void main(final String[] args) throws IOException {
-    if (args.length < 1) {
-      throw new IllegalArgumentException("Usage: sokoban.Sokoban <input_file>");
-    }
-    new Sokoban().parseAndConvert(args[0]);
+  private Sokoban() {
   }
 
-  private void parseAndConvert(final String filePath) throws IOException {
-    String[] lines = readLines(filePath);
-    Field[][] screen = mParser.parse(lines);
+  public static void main(final String[] args) throws IOException, ParseException {
+    Options options = new Options();
+    options.addOption("h", "help", false, "Shows this help message");
+    options.addOption("f", true, "The input file");
+    options.addOption("B", false, "Use the BDDSolver (default)");
+    options.addOption("N", false, "Use the NuSMVSolver");
+    options.addOption("W", false, "Don't show warnings");
 
-    String smvFilePath = filePath + ".smv";
+    CommandLineParser parser = new BasicParser();
+    CommandLine cmd = parser.parse(options, args);
 
-    mSmvWriter.writeSmv(screen, smvFilePath);
-    executeNuSMVIfWanted(smvFilePath);
-  }
-
-  private void executeNuSMVIfWanted(final String smvFilePath) throws IOException {
-    try (BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in))) {
-      String line = null;
-      while (line == null || !line.isEmpty() && !line.equalsIgnoreCase("y") && !line.equalsIgnoreCase("n")) {
-        System.out.println("Execute NuSMV on generated smv file? (Y/n)");
-        line = inputReader.readLine();
-        if (line.isEmpty() || line.equalsIgnoreCase("Y")) {
-          execNuSMV(smvFilePath);
-        }
-      }
+    if (cmd.hasOption('h') || !cmd.hasOption('f')) {
+      new HelpFormatter().printHelp("sokoban.Sokoban", options);
+      return;
     }
-  }
 
-  private String[] readLines(final String filePath) throws IOException {
-    try (BufferedReader reader = new BufferedReader(new FileReader(new File(filePath)))) {
-      List<String> lines = reader.lines().map(line -> line).collect(toList());
-      return lines.toArray(new String[lines.size()]);
+    if (cmd.hasOption('B') && cmd.hasOption('N')) {
+      System.out.println("-N cannot be used in conjunction with -B");
+      return;
     }
-  }
 
-
-  private void execNuSMV(final String smvFilePath) throws IOException {
-    System.out.println("Executing NuSMV...");
-    Process process = Runtime.getRuntime().exec(new String[]{"NuSMV", smvFilePath});
-
-    try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-      List<String> nuSMVOutput = reader.lines()
-                                         .filter(
-                                             s -> s.contains("move =")
-                                                 || s.contains("Input")
-                                         )
-                                         .map(s -> s.replace("move = ", ""))
-                                         .collect(toList());
-      if (nuSMVOutput.isEmpty()) {
-        System.out.println("No counter example found.");
-      } else {
-        System.out.println("Counter example:");
-        System.out.print("  ");
-        nuSMVOutput.forEach(new NuSMVOutputConsumer());
-      }
-
+    File file = new File(cmd.getOptionValue('f'));
+    if (!file.exists()) {
+      System.out.println("File does not exist");
+      return;
     }
-    System.out.flush();
-  }
-
-  private static class NuSMVOutputConsumer implements Consumer<String> {
-
-    private String previous;
-
-    private boolean previousWasInput;
-
-    @Override
-    public void accept(final String s) {
-      if (s.contains("Input") && previousWasInput) {
-        System.out.print(previous);
-        previousWasInput=true;
-      } else if (!s.contains("Input")) {
-        previousWasInput = false;
-        previous = s.trim();
-        System.out.print(previous);
-      }
+    
+    if(cmd.hasOption('W')){
+      System.err.close();
     }
+
+    Field[][] fields = new Parser().parse(file);
+    Solver solver;
+    if (cmd.hasOption('N')) {
+      System.out.println("Using NuSMVSolver to solve sokoban puzzle");
+      solver = new NuSMVSolver(fields, file);
+    } else {
+      System.out.println("Using BDDSolver to solve sokoban puzzle");
+      solver = new BDDSolver(fields);
+    }
+
+    solver.solve();
   }
 }

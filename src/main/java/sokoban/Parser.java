@@ -1,8 +1,24 @@
 package sokoban;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.List;
+
+import static java.util.stream.Collectors.toList;
+
 public class Parser {
 
-  public Field[][] parse(final String[] lines) {
+  public Field[][] parse(final File file) throws IOException {
+    if (!file.exists()) {
+      throw new IllegalArgumentException("File does not exist!");
+    }
+
+    return parse(readLines(file));
+  }
+
+  private Field[][] parse(final String[] lines) {
     System.out.println("Parsing input:");
     for (String line : lines) {
       System.out.println(line);
@@ -53,6 +69,13 @@ public class Parser {
       }
     }
     return result;
+  }
+
+  private static String[] readLines(final File file) throws IOException {
+    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+      List<String> lines = reader.lines().map(line -> line).collect(toList());
+      return lines.toArray(new String[lines.size()]);
+    }
   }
 
 }
