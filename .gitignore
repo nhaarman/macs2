@@ -1,20 +1,5 @@
-# autotools
-/Makefile
-/autom4te.cache/
-config.*
-.dirstamp
-
-# cmake
-CMakeCache.txt
-CMakeFiles
-cmake_install.cmake
-
-# libtool
-.deps/
-.libs/
-/libtool
-
-# object files
-*.lo
-*.o
-*.la
+.idea/**
+build/**
+classes/**
+output/**
+*.iml
