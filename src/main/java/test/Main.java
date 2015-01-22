@@ -4,6 +4,10 @@ import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
 import net.sf.javabdd.BDDPairing;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+
 public class Main {
 
   private final BDDFactory mFactory;
@@ -26,20 +30,28 @@ public class Main {
 
   private final BDD mTransitions;
 
+//  private final BDD rTransitionA;
+//
+//  private final BDD rTransitionB;
+//
+//  private final BDD rTransitionC;
+//
+//  private final BDD rTransitionD;
+//
+//  private final BDD rTransitionE;
+
+  private final List<BDD> mIntermediateBDDs = new LinkedList<>();
+
+  private final BDD mTransitionA;
+  private final BDD mTransitionB;
+  private final BDD mTransitionC;
+  private final BDD mTransitionD;
+  private final BDD mTransitionE;
   private final BDD rTransitionA;
-
   private final BDD rTransitionB;
-
   private final BDD rTransitionC;
-
   private final BDD rTransitionD;
-
-  public static void main(final String[] args) {
-    /* Get rid of error stream */
-    System.err.close();
-    
-    new Main().run();
-  }
+  private final BDD rTransitionE;
 
   public Main() {
     mFactory = BDDFactory.init(4, 4);
@@ -51,10 +63,10 @@ public class Main {
      * A valid trace thus is 'bc'.
      *
      * (0,1) --c--> (1,1)
-     *   ^            |
+     *   ^            ^
      *   |            |
      *   b            d
-     *   |            v
+     *   |            |
      * (0,0) --a--> (1,0)
      *
      *
@@ -86,35 +98,49 @@ public class Main {
     mGoal = s0.and(s1);
 
     /* There are four transitions: */
-    BDD transitionA = not(s0).and(not(s1)).and(s0p).and(not(s1p)); // From (0,0) to (1,0)
-    BDD transitionB = not(s0).and(not(s1)).and(not(s0p)).and(s1p); // From (0,0) to (0,1)
-    BDD transitionC = not(s0).and(s1).and(s0p).and(s1p);           // From (0,1) to (1,1)
-    BDD transitionD = s0.and(s1).and(s0p).and(not(s1p));           // From (1,1) to (1,0)
+    mTransitionA = not(s0).and(not(s1)).and(s0p).and(not(s1p)); // From (0,0) to (1,0)
+    mTransitionB = not(s0).and(not(s1)).and(not(s0p)).and(s1p); // From (0,0) to (0,1)
+    mTransitionC = not(s0).and(s1).and(s0p).and(s1p);           // From (0,1) to (1,1)
+    mTransitionD = s0.and(not(s1)).and(s0p).and(s1p);           // From (1,0) to (1,1)
+    
+    /* An extra transition from (0,0) to (1,1) */
+    mTransitionE = not(s0).and(not(s1)).and(s0p).and(s1p);
 
     /* We bundle these transitions */
     mTransitions = mFactory.zero()
-                           .or(transitionA)
-                           .or(transitionB)
-                           .or(transitionC)
-                           .or(transitionD);
-    
-    /* Setup reverse transitions */
+                           .or(mTransitionA)
+                           .or(mTransitionB)
+                           .or(mTransitionC)
+                           .or(mTransitionD)
+                           .or(mTransitionE)
+    ;
+
     rTransitionA = s0.and(not(s1)).and(not(s0p)).and(not(s1p));
     rTransitionB = not(s0).and(s1).and(not(s0p)).and(not(s1p));
     rTransitionC = s0.and(s1).and(not(s0p)).and(s1p);
-    rTransitionD = s0.and(not(s1)).and(s0p).and(s1p);
+    rTransitionD = s0.and(s1).and(s0p).and(not(s1p));
+    rTransitionE = s0.and(s1).and(not(s0p)).and(not(s1p));
+
+    /* With transition E enabled, there are 3 possible solutions: 'bc', 'ad' and 'e'. To get path 'bc' as a solution, comment all references to mTransitionE and rTransitionE.  */
+    
+  }
+
+  public static void main(final String[] args) {
+    new Main().run();
   }
 
   private void run() {
     /*
-     * We now start the breadth first search.
-     * This is not exactly the way it was presented on the sheets, but this enables backtracking.
+     * We now start the breadth first search, using variant 2 in the sheets.
+     * We also store the intermediate BDDs to allow for backtracking
      */
     BDD vOld = mFactory.zero();
     BDD vNew = mInit;
-    while (!vOld.equals(vNew) && vNew.and(mGoal).satCount(mSet) == 0) {
+
+    while (!vOld.equals(vNew)) {
+      mIntermediateBDDs.add(vNew);
       vOld = vNew;
-      vNew = vOld.relprod(mTransitions, mSet).replace(mPairing);
+      vNew = vOld.or(vOld.relprod(mTransitions, mSet).replace(mPairing));
     }
 
     if (vNew.and(mGoal).satCount(mSet) == 0) {
@@ -127,52 +153,42 @@ public class Main {
   }
 
   private void findTrace(BDD vNew) {
-  /*
-   * To find a counter example, we need to backtrack from our final state to our initial state.
-   * Therefore we setup all transitions in reverse, and try them out.
-   * Whenever we did NOT make that transition, the result of relprod turns out as 'zero'.
-   */
+    StringBuilder stringBuilder = new StringBuilder();
 
-    /* Find the transitions that have been used to get to this state. */
-    StringBuilder backtrack = new StringBuilder();
+    ListIterator<BDD> iterator = mIntermediateBDDs.listIterator(mIntermediateBDDs.size() - 1);
+    BDD goal = mGoal;
 
-    /*
-     * We loop until we're back in the initial state.
-     * In each loop we try each transition until we find a transition that results in non zero,
-     * and save this transition.
-     */
-    while (!vNew.equals(mInit)) {
-      BDD tmp = vNew.relprod(rTransitionA, mSet).replace(mPairing);
-      if (!tmp.isZero()) {
-        backtrack.append('A');
-        vNew = tmp;
-        continue;
+    while (iterator.hasPrevious()) {
+      BDD a = iterator.previous();
+    
+      /* Find out which transition led to go from a to b */
+      BDD reverseTransition;
+      if (canMakeTransition(a, goal, mTransitionA)) {
+        stringBuilder.insert(0, 'a');
+        reverseTransition = rTransitionA;
+      } else if (canMakeTransition(a, goal, mTransitionB)) {
+        stringBuilder.insert(0, 'b');
+        reverseTransition = rTransitionB;
+      } else if (canMakeTransition(a, goal, mTransitionC)) {
+        stringBuilder.insert(0, 'c');
+        reverseTransition = rTransitionC;
+      } else if (canMakeTransition(a, goal, mTransitionD)) {
+        stringBuilder.insert(0, 'd');
+        reverseTransition = rTransitionD;
+      } else if (canMakeTransition(a, goal, mTransitionE)) {
+        stringBuilder.insert(0, 'e');
+        reverseTransition = rTransitionE;
+      } else {
+        throw new IllegalStateException("Cannot backtrack current state!");
       }
-
-      tmp = vNew.relprod(rTransitionB, mSet).replace(mPairing);
-      if (!tmp.isZero()) {
-        backtrack.append('B');
-        vNew = tmp;
-        continue;
-      }
-
-      tmp = vNew.relprod(rTransitionC, mSet).replace(mPairing);
-      if (!tmp.isZero()) {
-        backtrack.append('C');
-        vNew = tmp;
-        continue;
-      }
-
-      tmp = vNew.relprod(rTransitionD, mSet).replace(mPairing);
-      if (!tmp.isZero()) {
-        backtrack.append('D');
-        vNew = tmp;
-        continue;
-      }
+      goal = goal.relprod(reverseTransition, mSet).replace(mPairing);
     }
 
-    /* At this point, we have our trace (in reverse). The result should print out "Trace: BC" */
-    System.out.println("Trace: " + backtrack.reverse().toString());
+    System.out.println(stringBuilder);
+  }
+
+  private boolean canMakeTransition(final BDD a, final BDD goal, final BDD transition) {
+    return !a.relprod(transition, mSet).replace(mPairing).and(goal).isZero();
   }
 
   /**
