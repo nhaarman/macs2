@@ -10,6 +10,9 @@ import org.apache.commons.cli.ParseException;
 import java.io.File;
 import java.io.IOException;
 
+import sokoban.bdd.BDDSolver;
+import sokoban.nusmv.NuSMVSolver;
+
 public class Sokoban {
 
   private Sokoban() {
@@ -41,12 +44,13 @@ public class Sokoban {
       System.out.println("File does not exist");
       return;
     }
-    
-    if(cmd.hasOption('W')){
+
+    if (cmd.hasOption('W')) {
       System.err.close();
     }
 
     Field[][] fields = new Parser().parse(file);
+
     Solver solver;
     if (cmd.hasOption('N')) {
       System.out.println("Using NuSMVSolver to solve sokoban puzzle");

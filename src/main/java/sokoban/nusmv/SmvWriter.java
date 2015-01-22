@@ -1,4 +1,4 @@
-package sokoban;
+package sokoban.nusmv;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -6,8 +6,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 
-@SuppressWarnings("HardCodedStringLiteral")
-public class SmvWriter {
+import sokoban.Field;
+
+@SuppressWarnings("HardCodedStringLiteral") 
+class SmvWriter {
 
   public void writeSmv(final Field[][] screen, final String filePath) throws IOException {
     File file = new File(filePath);

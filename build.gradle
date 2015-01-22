@@ -1,7 +1,16 @@
 apply plugin: 'java'
+apply plugin: 'application'
+
+mainClassName = 'sokoban.Sokoban'
 
 sourceCompatibility = 1.8
 version = '1.0'
+
+run {
+    if (project.hasProperty("appArgs")) {
+        args Eval.me(appArgs)
+    }
+}
 
 repositories {
     mavenCentral()
@@ -9,8 +18,10 @@ repositories {
 
 dependencies {
     compile files('libs/javabdd-1.0b2.jar')
-    
+
     compile 'commons-cli:commons-cli:1.2'
-    
-    testCompile group: 'junit', name: 'junit', version: '4.11'
+
+    testCompile 'junit:junit:4.11'
+    testCompile 'org.mockito:mockito-core:1.10.8'
+    testCompile 'org.hamcrest:hamcrest-all:1.3'
 }

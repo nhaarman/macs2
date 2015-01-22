@@ -4,22 +4,22 @@ public enum Field {
 
   EMPTY, WALL, MAN, BLOCK, GOAL, BLOCK_ON_GOAL, MAN_ON_GOAL;
 
-  public static Field convertFromScreenInput(char c) {
+  public static Field convertFromScreenInput(final char c) {
     switch (c) {
       case '#':
-        return Field.WALL;
+        return WALL;
       case '@':
-        return Field.MAN;
+        return MAN;
       case '.':
-        return Field.GOAL;
+        return GOAL;
       case ' ':
-        return Field.EMPTY;
+        return EMPTY;
       case '$':
-        return Field.BLOCK;
+        return BLOCK;
       case '*':
-        return Field.BLOCK_ON_GOAL;
+        return BLOCK_ON_GOAL;
       case '+':
-        return Field.MAN_ON_GOAL;
+        return MAN_ON_GOAL;
       default:
         throw new IllegalArgumentException(String.format("Illegal character %s in screen!", c));
     }
