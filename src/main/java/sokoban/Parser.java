@@ -54,6 +54,8 @@ public class Parser {
     NuSMV variables there also should be implemented ignoring walls,
     so this change would not affect its performance
      */
+
+    //TODO if whole line or column is a wall then remove
     Field[][] screen = createMatrix(rows, cols, Field.EMPTY);
 
     for (int i = 0; i < rows; i++) {
