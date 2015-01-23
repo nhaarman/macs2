@@ -45,4 +45,25 @@ public enum Field {
         throw new IllegalArgumentException("Invalid Field " + this);
     }
   }
+
+  public char convertToScreenInput() {
+    switch (this) {
+      case WALL:
+        return '#';
+      case MAN:
+        return '@';
+      case GOAL:
+        return '.';
+      case EMPTY:
+        return ' ';
+      case BLOCK:
+        return '$';
+      case BLOCK_ON_GOAL:
+        return '*';
+      case MAN_ON_GOAL:
+        return '+';
+      default:
+        throw new IllegalArgumentException("Invalid Field " + this);
+    }
+  }
 }

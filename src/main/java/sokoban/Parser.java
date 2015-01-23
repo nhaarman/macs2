@@ -47,18 +47,53 @@ public class Parser {
   }
 
   private Field[][] parseScreen(final String[] lines, final int rows, final int cols) {
-    Field[][] screen = createMatrix(rows - 2, cols - 2, Field.EMPTY);
+    /*
+    I changed this method - it does not to remove now outside wall, so I can
+    replace inaccessible empty places outside the walls with walls, so that
+    unnecessary variables won't be created for them. When it comes to reducing
+    NuSMV variables there also should be implemented ignoring walls,
+    so this change would not affect its performance
+     */
+    Field[][] screen = createMatrix(rows, cols, Field.EMPTY);
 
-    for (int i = 0; i < rows - 2; i++) {
-      String s = lines[i + 1];
+    for (int i = 0; i < rows; i++) {
+      String s = lines[i];
       Field[] row = screen[i];
 
-      for (int j = 0; j < cols - 2 && j < s.length(); j++) {
-        row[j] = Field.convertFromScreenInput(s.charAt(j + 1));
+      for (int j = 0; j < cols && j < s.length(); j++) {
+        row[j] = Field.convertFromScreenInput(s.charAt(j));
       }
+
+      // Replacing empty spaces outside with walls
+      replaceBeginningOfLine(row, Field.WALL, Field.WALL);
+      replaceEndOfLine(row, Field.WALL, Field.WALL);
     }
 
     return screen;
+  }
+
+  private void replaceBeginningOfLine(Field[] row,
+                                      Field untilThisMet,
+                                      Field replaceWith)
+  {
+    int i = 0;
+    while (row[i] != untilThisMet)
+    {
+      row[i] = replaceWith;
+      i++;
+    }
+  }
+
+  private void replaceEndOfLine(Field[] row,
+                                Field untilThisMet,
+                                Field replaceWith)
+  {
+    int i = row.length - 1;
+    while (row[i] != untilThisMet)
+    {
+      row[i] = replaceWith;
+      i--;
+    }
   }
 
   private Field[][] createMatrix(final int rows, final int cols, final Field initialValue) {
