@@ -2,15 +2,12 @@ package sokoban.bdd;
 
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
+import net.sf.javabdd.BDDPairing;
 import sokoban.Field;
 import sokoban.Parser;
 
 import java.io.File;
 import java.io.IOException;
-
-import static sokoban.bdd.Utils.not;
-import static sokoban.bdd.VariableType.BOX;
-import static sokoban.bdd.VariableType.MAN;
 
 /**
  * Created by rafal on 23.01.15.
@@ -22,60 +19,70 @@ public class Experiment
    private final int noOfBitsForWidth;
    private final int noOfBitsForHeight;
    private final BDDFactory factory;
-   private final State initStateFields;
+   private final State initialStateFields;
+
+   private BDDPairing mPairing;
+   private BDDPairing mPairingReversed;
+   private BDD mSet;
+
+   private BDD initStateBDD;
+   private BDD goalState;
 
    public static void main(String[] args)
            throws IOException
    {
-
-
       String filePath = "/home/rafal/0_Workspaces/IdeaProjects/macs2/screen.0";
 
       Experiment experiment = new Experiment(filePath);
       experiment.run();
    }
 
+   ////////////////////////// BUILDER PART ///////////////////////////////
+
    public Experiment(final String filePath)
            throws IOException
    {
-      this.initStateFields = new State((new Parser()).parse(new File(filePath)));
-      this.screenHeight = initStateFields.getFields().length;
-      this.screenWidth = initStateFields.getFields()[0].length;
+      this.initialStateFields = new State((new Parser()).parse(new File(filePath)));
+      this.screenHeight = initialStateFields.getFields().length;
+      this.screenWidth = initialStateFields.getFields()[0].length;
 
       this.noOfBitsForHeight
               = Integer.SIZE - Integer.numberOfLeadingZeros(screenHeight);
       this.noOfBitsForWidth
               = Integer.SIZE - Integer.numberOfLeadingZeros(screenWidth);
 
-      this.factory = BDDFactory.init(10000, 10000);
-      int varNum = (noOfBitsForHeight
+      this.factory = BDDFactory.init(10000, 10000); //TODO why those values?
+      int varNum = noOfBitsForHeight
               + noOfBitsForWidth
-              + screenWidth*screenHeight) * RegPri.values().length;
-      System.out.println(varNum);
-      factory.setVarNum(varNum);
+              + screenWidth*screenHeight;
+      factory.setVarNum(varNum * 2);
 
-      // TODO remove
-      System.out.println(screenWidth);
-      System.out.println(screenHeight);
-      System.out.println(noOfBitsForWidth);
-      System.out.println(noOfBitsForHeight);
-      System.out.println(initStateFields);
+      initVariablesSetAndPairing(varNum);
+      initInitialStateAndGoalState(initialStateFields);
    }
 
-
-   public void run()
+   private void initVariablesSetAndPairing(int varNum)
    {
-      // Create fields from file
-      BDD initState = createInitState(initStateFields);
+      mPairing = factory.makePair();
+      mPairingReversed = factory.makePair();
+      int[] set = new int[varNum];
+      for (int i = 0; i < varNum; i++)
+      {
+         int regVarNo = i*2;
+         int pairVarNo = i*2 + 1;
 
-      initState.printDot();
-
+         mPairing.set(pairVarNo, regVarNo);
+         mPairingReversed.set(regVarNo, pairVarNo);
+         set[i] = regVarNo;
+      }
+      mSet = factory.makeSet(set);
    }
 
-   private BDD createInitState(final State state)
+   private BDD initInitialStateAndGoalState(final State state)
    {
       Field[][] fields = state.getFields();
-      BDD initStateBDD = factory.one();
+      initStateBDD = factory.one();
+      goalState = factory.one();
 
       for(int i = 0; i < fields.length; i++)
       {
@@ -83,18 +90,20 @@ public class Experiment
          {
             switch (fields[i][j]) {
                case MAN_ON_GOAL:
+                  goalState.andWith(getVar(i, j));
                case MAN:
                   initStateBDD.andWith(createStateForMan(i, j));
+                  initStateBDD.andWith(getNVar(i, j));
                   break;
                case BLOCK_ON_GOAL:
+                  goalState.andWith(getVar(i, j));
                case BLOCK:
-                  BDD bddForBlock = varOf(i, j, RegPri.REGULAR);
-                  initStateBDD.andWith(bddForBlock);
+                  initStateBDD.andWith(getVar(i, j));
                   break;
                case GOAL:
+                  goalState.andWith(getVar(i, j));
                case EMPTY:
-                  BDD bddForEmpty = varOf(i, j, RegPri.REGULAR).not();
-                  initStateBDD.andWith(bddForEmpty);
+                  initStateBDD.andWith(getNVar(i, j));
                   break;
                case WALL:
                /* We ignore walls */
@@ -104,7 +113,6 @@ public class Experiment
 
       return initStateBDD;
    }
-
 
    private BDD createStateForMan(int row, int column)
    {
@@ -117,12 +125,10 @@ public class Experiment
 
       for (int i = 0; i < both.length; i++)
       {
-         int manVarNo = i * RegPri.values().length;
-         BDD variable = factory.ithVar(manVarNo);
          if (both[i])
-            result.andWith(variable);
+            result.andWith(factory.ithVar(i*2));
          else
-            result.andWith(variable.not());
+            result.andWith(factory.nithVar(i * 2));
       }
 
       return result;
@@ -137,18 +143,52 @@ public class Experiment
       return bits;
    }
 
-   public BDD varOf(final int i, final int j, final RegPri type) {
-      int variableNumber = translate(i, j, type);
-      return factory.ithVar(variableNumber);
+
+   //TODO implement this in a more elegant way
+   private BDD getVar(final int i, final int j)
+   {
+      return factory.ithVar(translate(i, j) * 2);
    }
 
-   private int translate(final int i, final int j, final RegPri type) {
-      int offset = (noOfBitsForHeight + noOfBitsForWidth) * RegPri.values().length;
-      return (screenWidth * i + j) * RegPri.values().length
-              + type.ordinal()
-              + offset;
+   private BDD getNVar(final int i, final int j)
+   {
+      return factory.nithVar(translate(i, j) * 2);
    }
 
+   private BDD getVarPri(final int i, final int j)
+   {
+      return factory.ithVar(translate(i, j) * 2 + 1);
+   }
+
+   private BDD getNVarPri(final int i, final int j)
+   {
+      return factory.nithVar(translate(i, j) * 2 + 1);
+   }
+
+   private int translate(final int i, final int j) {
+      return screenWidth * i + j + noOfBitsForHeight + noOfBitsForWidth;
+   }
+
+   ////////////////////////// BUILDER PART END ///////////////////////////////
+
+   ////////////////////////// SOLVER PART ///////////////////////////////
+
+   public void run()
+   {
+      BDD newState = initStateBDD.relprod(transitionRight(), mSet).replace(mPairing);
+      BDD sumState = initStateBDD.or(newState);
+
+      initStateBDD.printDot();
+      newState.printDot();
+      sumState.printDot();
+   }
+
+   private BDD transitionRight()
+   {
+      BDD manState = createStateForMan(1, 2);
+      BDD manPrimed = createStateForMan(1, 3).replace(mPairingReversed);
+      return manState.and(manPrimed);
+   }
+
+   ////////////////////////// SOLVER PART END ///////////////////////////////
 }
-
-enum RegPri {REGULAR, PRIME}
