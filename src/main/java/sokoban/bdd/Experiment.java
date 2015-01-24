@@ -8,6 +8,8 @@ import sokoban.Parser;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Created by rafal on 23.01.15.
@@ -18,6 +20,7 @@ public class Experiment
    private final int screenHeight;
    private final int noOfBitsForWidth;
    private final int noOfBitsForHeight;
+   private final int varNum;
    private final BDDFactory factory;
    private final State initialStateFields;
 
@@ -52,7 +55,7 @@ public class Experiment
               = Integer.SIZE - Integer.numberOfLeadingZeros(screenWidth);
 
       this.factory = BDDFactory.init(10000, 10000); //TODO why those values?
-      int varNum = noOfBitsForHeight
+      this.varNum = noOfBitsForHeight
               + noOfBitsForWidth
               + screenWidth*screenHeight;
       factory.setVarNum(varNum * 2);
@@ -175,27 +178,105 @@ public class Experiment
 
    public void run()
    {
-      BDD transRight = transitionRight();
-      BDD newState = initStateBDD.relprod(transRight, mSet).replace(mPairing);
-      BDD sumState = initStateBDD.or(newState);
 
-      initStateBDD.printDot();
-      transRight.printDot();
-      newState.printDot();
-      sumState.printDot();
    }
 
-   private BDD transitionRight()
+   private BDD allTransitions()
    {
-      BDD manState = createStateForMan(1, 2);
-      BDD manPrimed = createStateForMan(1, 3).replace(mPairingReversed);
-      BDD manTrans = manState.and(manPrimed);
+      //TODO combine with "or" function transitions for all fields and all directions
+      return factory.zero();
+   }
 
-      BDD manState2 = createStateForMan(1, 3);
-      BDD manPrimed2 = createStateForMan(1, 4).replace(mPairingReversed);
-      BDD manTrans2 = manState2.and(manPrimed2);
+   private BDD directedOnePointTransition(final int i, final int j, final Direction direction)
+   {
+      int[] values = getRowsAndColsForDirection(i, j, direction);
+      int row0 = values[0];
+      int col0 = values[1];
+      int row1 = values[2];
+      int col1 = values[3];
+      int row2 = values[4];
+      int col2 = values[5];
 
-      return manTrans.or(manTrans2);
+      BDD placeNeighbour = getVar(row1, col1);
+      BDD placeDoubleNeighbour = getVar(row2, col2);
+      Set<Integer> ignore = new HashSet<>();
+      ignore.add(translate(row1, col1)*2);
+      ignore.add(translate(row2, col2)*2);
+
+      BDD noMove = factory.zero();
+      BDD moveManOnly = createStateForMan(row0, col0)
+              .and(createStateForMan(row1, col1).replace(mPairingReversed))
+              .and(sameBlocks());
+      BDD moveManAndBlock = createStateForMan(row0, col0)
+              .and(createStateForMan(row1, col1).replace(mPairingReversed))
+              .and(getNVarPri(row1, col1))
+              .and(getVarPri(row2, col2))
+              .and(sameBlocksExcept(ignore));
+
+      Field[][] fields = initialStateFields.getFields();
+
+      if (fields[row0][col0] == Field.WALL)
+         return noMove;
+
+      if (fields[row1][col1] == Field.WALL)
+         return noMove;
+
+      if (fields[row2][col2] == Field.WALL)
+      {
+         return placeNeighbour.ite(
+                 noMove, //there is a box so we cannot move there
+                 moveManOnly// we can move because it is empty
+         );
+      }
+
+      return placeNeighbour.ite(
+              placeDoubleNeighbour.ite( //if true then there is a box
+                      noMove, //if true then we cannot move
+                      moveManAndBlock// if false then there is empty space so
+                      // we can move
+              ), moveManOnly// we can move because it is empty
+      );
+   }
+
+   // TODO create a class to be returned
+   private int[] getRowsAndColsForDirection(final int i, final int j,
+                                            final Direction direction)
+   {
+      switch (direction)
+      {
+         case DOWN:
+            return new int[]{i, j, i+1, j, i+2, j};
+         case LEFT:
+            return new int[]{i, j, i, j-1, i, j-2};
+         case UP:
+            return new int[]{i, j, i-1, j, i-2, j};
+         case RIGHT:
+            return new int[]{i, j, i, j+1, i, j+2};
+         default:
+            throw new RuntimeException("Invalid direction");
+      }
+   }
+
+   private BDD sameBlocks()
+   {
+      return sameBlocksExcept(new HashSet<>());
+   }
+
+   private BDD sameBlocksExcept(final Set<Integer> changedBlocks)
+   {
+      BDD blocks = factory.one();
+      int i = (noOfBitsForHeight + noOfBitsForWidth) * 2;
+      while(i < varNum*2)
+      {
+         if (!changedBlocks.contains(i))
+         {
+            BDD regVar = factory.ithVar(i);
+            BDD primedVar = factory.ithVar(i+1);
+            blocks.andWith(regVar.biimp(primedVar));
+         }
+         i += 2;
+      }
+      return blocks;
    }
 
    ////////////////////////// SOLVER PART END ///////////////////////////////
