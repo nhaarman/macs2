@@ -183,12 +183,18 @@ public class Experiment
 
    private BDD allTransitions()
    {
-      //TODO combine with "or" function transitions for all fields and all directions
-      return factory.zero();
+      BDD allTransitions = factory.zero();
+      for (int i = 0; i < screenHeight; i++)
+         for (int j = 0; j < screenWidth; j++)
+            for (Direction direction : Direction.values())
+               allTransitions.or(directedOnePointTransition(i, j, direction));
+
+      return allTransitions;
    }
 
    private BDD directedOnePointTransition(final int i, final int j, final Direction direction)
    {
+      // TODO make this method smaller
       int[] values = getRowsAndColsForDirection(i, j, direction);
       int row0 = values[0];
       int col0 = values[1];
