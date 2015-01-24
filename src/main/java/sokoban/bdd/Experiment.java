@@ -178,7 +178,7 @@ public class Experiment
 
    public void run()
    {
-
+      allTransitions().printDot();
    }
 
    private BDD allTransitions()
@@ -187,7 +187,7 @@ public class Experiment
       for (int i = 0; i < screenHeight; i++)
          for (int j = 0; j < screenWidth; j++)
             for (Direction direction : Direction.values())
-               allTransitions.or(directedOnePointTransition(i, j, direction));
+               allTransitions.orWith(directedOnePointTransition(i, j, direction));
 
       return allTransitions;
    }
@@ -203,29 +203,19 @@ public class Experiment
       int row2 = values[4];
       int col2 = values[5];
 
-      BDD placeNeighbour = getVar(row1, col1);
-      BDD placeDoubleNeighbour = getVar(row2, col2);
-      Set<Integer> ignore = new HashSet<>();
-      ignore.add(translate(row1, col1)*2);
-      ignore.add(translate(row2, col2)*2);
-
-      BDD noMove = factory.zero();
-      BDD moveManOnly = createStateForMan(row0, col0)
-              .and(createStateForMan(row1, col1).replace(mPairingReversed))
-              .and(sameBlocks());
-      BDD moveManAndBlock = createStateForMan(row0, col0)
-              .and(createStateForMan(row1, col1).replace(mPairingReversed))
-              .and(getNVarPri(row1, col1))
-              .and(getVarPri(row2, col2))
-              .and(sameBlocksExcept(ignore));
-
       Field[][] fields = initialStateFields.getFields();
+      BDD noMove = factory.zero();
 
       if (fields[row0][col0] == Field.WALL)
          return noMove;
 
       if (fields[row1][col1] == Field.WALL)
          return noMove;
+
+      BDD placeNeighbour = getVar(row1, col1);
+      BDD moveManOnly = createStateForMan(row0, col0)
+              .and(createStateForMan(row1, col1).replace(mPairingReversed))
+              .and(sameBlocks());
 
       if (fields[row2][col2] == Field.WALL)
       {
@@ -234,6 +224,16 @@ public class Experiment
                  moveManOnly// we can move because it is empty
          );
       }
+
+      BDD placeDoubleNeighbour = getVar(row2, col2);
+      Set<Integer> ignore = new HashSet<>();
+      ignore.add(translate(row1, col1)*2);
+      ignore.add(translate(row2, col2)*2);
+      BDD moveManAndBlock = createStateForMan(row0, col0)
+              .and(createStateForMan(row1, col1).replace(mPairingReversed))
+              .and(getNVarPri(row1, col1))
+              .and(getVarPri(row2, col2))
+              .and(sameBlocksExcept(ignore));
 
       return placeNeighbour.ite(
               placeDoubleNeighbour.ite( //if true then there is a box
