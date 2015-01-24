@@ -175,10 +175,12 @@ public class Experiment
 
    public void run()
    {
-      BDD newState = initStateBDD.relprod(transitionRight(), mSet).replace(mPairing);
+      BDD transRight = transitionRight();
+      BDD newState = initStateBDD.relprod(transRight, mSet).replace(mPairing);
       BDD sumState = initStateBDD.or(newState);
 
       initStateBDD.printDot();
+      transRight.printDot();
       newState.printDot();
       sumState.printDot();
    }
@@ -187,7 +189,13 @@ public class Experiment
    {
       BDD manState = createStateForMan(1, 2);
       BDD manPrimed = createStateForMan(1, 3).replace(mPairingReversed);
-      return manState.and(manPrimed);
+      BDD manTrans = manState.and(manPrimed);
+
+      BDD manState2 = createStateForMan(1, 3);
+      BDD manPrimed2 = createStateForMan(1, 4).replace(mPairingReversed);
+      BDD manTrans2 = manState2.and(manPrimed2);
+
+      return manTrans.or(manTrans2);
    }
 
    ////////////////////////// SOLVER PART END ///////////////////////////////
