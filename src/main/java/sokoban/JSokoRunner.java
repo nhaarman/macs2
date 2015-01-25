@@ -1,5 +1,6 @@
 package sokoban;
 
+import java.awt.AWTException;
 import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
@@ -24,26 +25,64 @@ public class JSokoRunner {
     System.err.print("Press enter to confirm. >");
     System.err.flush();
 
-    new BufferedReader(new InputStreamReader(System.in)).readLine();
+    try (BufferedReader systemInReader = new BufferedReader(new InputStreamReader(System.in))) {
+      systemInReader.readLine();
 
+      Process process = Runtime.getRuntime().exec(new String[]{"java", "-jar", "JSoko_1.73/JSoko.jar"});
 
-Process process =    Runtime.getRuntime().exec(new String[]{"java", "-jar", "JSoko_1.73/JSoko.jar"});
+      Robot robot = new Robot();
+      robot.delay(3000);
 
-    try {
-      List<String> lines = new BufferedReader(new FileReader(file)).lines().collect(Collectors.toList());
+      System.err.println("Sending keystrokes");
+
+      pasteScreen(file, robot);
+      pasteSolution(lurd, robot);
+      startAnimation(robot);
+
+      System.err.println("Done sending keystrokes");
+
+      process.waitFor();
+    } catch (AWTException e) {
+      throw new RuntimeException(e);
+    } catch (InterruptedException ignored) {
+    }
+  }
+
+  private void startAnimation(final Robot robot) {
+    robot.keyPress(KeyEvent.VK_HOME);
+    robot.delay(100);
+    robot.keyRelease(KeyEvent.VK_HOME);
+    robot.delay(100);
+    robot.keyPress(KeyEvent.VK_R);
+    robot.delay(100);
+    robot.keyRelease(KeyEvent.VK_R);
+  }
+
+  private void pasteSolution(final String lurd, final Robot robot) {
+    StringSelection lurdStringSelection = new StringSelection(lurd);
+    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+    clipboard.setContents(lurdStringSelection, lurdStringSelection);
+
+    robot.keyPress(KeyEvent.VK_CONTROL);
+    robot.delay(100);
+    robot.keyPress(KeyEvent.VK_P);
+    robot.delay(100);
+    robot.keyRelease(KeyEvent.VK_P);
+    robot.delay(100);
+    robot.keyRelease(KeyEvent.VK_CONTROL);
+    robot.delay(100);
+  }
+
+  private void pasteScreen(final File file, final Robot robot) throws IOException {
+    try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
+      List<String> lines = bufferedReader.lines().collect(Collectors.toList());
       String screenString = String.join("\n", lines);
       StringSelection stringSelection = new StringSelection(screenString);
 
       Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
       clipboard.setContents(stringSelection, stringSelection);
 
-      Robot robot = new Robot();
 
-      robot.delay(5000);
-
-      System.err.println("Sending keystrokes");
-
-      /* Paste the screen */
       robot.keyPress(KeyEvent.VK_CONTROL);
       robot.delay(100);
       robot.keyPress(KeyEvent.VK_V);
@@ -52,41 +91,6 @@ Process process =    Runtime.getRuntime().exec(new String[]{"java", "-jar", "JSo
       robot.delay(100);
       robot.keyRelease(KeyEvent.VK_CONTROL);
       robot.delay(100);
-
-      StringSelection lurdStringSelection = new StringSelection(lurd);
-      clipboard.setContents(lurdStringSelection, lurdStringSelection);
-
-      /* Paste the solution */
-      robot.keyPress(KeyEvent.VK_CONTROL);
-      robot.delay(100);
-      robot.keyPress(KeyEvent.VK_P);
-      robot.delay(100);
-      robot.keyRelease(KeyEvent.VK_P);
-      robot.delay(100);
-      robot.keyRelease(KeyEvent.VK_CONTROL);
-      robot.delay(100);
-
-      /* Start animation */
-      robot.keyPress(KeyEvent.VK_HOME);
-      robot.delay(100);
-      robot.keyRelease(KeyEvent.VK_HOME);
-      robot.delay(100);
-      robot.keyPress(KeyEvent.VK_R);
-      robot.delay(100);
-      robot.keyRelease(KeyEvent.VK_R);
-
-      System.err.println("Done sending keystrokes");
-
-    } catch (Exception e) {
-      e.printStackTrace();
     }
-
-    try {
-      process.waitFor();
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-
   }
-
 }
