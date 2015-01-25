@@ -1,79 +1,109 @@
 package sokoban.bdd;
 
 import net.sf.javabdd.BDD;
-import net.sf.javabdd.BDDFactory;
 import net.sf.javabdd.BDDPairing;
 
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
 
 import sokoban.Field;
 import sokoban.Solver;
 
-import static sokoban.bdd.Utils.not;
-
 public class BDDSolver implements Solver {
 
-  public static final int NODENUM = 100000;
-  public static final int CACHESIZE = 100000;
-
-  private final BDDFactory mFactory;
   private final BDDBuilder mBDDBuilder;
+  private final TransitionBuilder mTransitionBuilder;
 
-  private final State mInitialState;
   private final BDD mInitialBDD;
   private final BDD mGoalBDD;
 
-  public BDDSolver(Field[][] fields) {
+  private final BDD mVariableSet;
+  private final BDDPairing mPairing;
 
-    fields = new Field[1][];
-    fields[0] = new Field[2];
-    fields[0][0] = Field.MAN;
-    fields[0][1] = Field.EMPTY;
+  public BDDSolver(final Field[][] fields) {
+    Screen screen = new Screen(fields);
 
-    mFactory = BDDFactory.init(NODENUM, CACHESIZE);
-    mFactory.setVarNum(fields.length * fields[0].length * 4);
+    mBDDBuilder = new BDDBuilder(screen);
+    mTransitionBuilder = new TransitionBuilder(mBDDBuilder, screen);
 
-    mBDDBuilder = new BDDBuilder(mFactory, fields[0].length, fields.length);
+    mInitialBDD = mBDDBuilder.createScreenBDD();
+    mGoalBDD = mBDDBuilder.createGoalBDD();
 
-    mInitialState = new State(fields);
-    mInitialBDD = mBDDBuilder.toBDD(mInitialState);
-    mGoalBDD = mBDDBuilder.getGoalBDD(mInitialState);
+    mVariableSet = mBDDBuilder.getVariableSet();
+    mPairing = mBDDBuilder.getPairing();
   }
 
   @Override
   public void solve() throws IOException {
-//    BDD m0 = mBDDBuilder.varOf(0, 0, VariableType.MAN);
-//    BDD b0 = mBDDBuilder.varOf(0, 0, VariableType.BOX);
-//
-//    BDD m0p = mBDDBuilder.varOf(0, 0, VariableType.MAN_PRIME);
-//    BDD b0p = mBDDBuilder.varOf(0, 0, VariableType.BOX_PRIME);
-//
-//    BDD m1 = mBDDBuilder.varOf(0, 1, VariableType.MAN);
-//    BDD b1 = mBDDBuilder.varOf(0, 1, VariableType.BOX);
-//
-//    BDD m1p = mBDDBuilder.varOf(0, 1, VariableType.MAN_PRIME);
-//    BDD b1p = mBDDBuilder.varOf(0, 1, VariableType.BOX_PRIME);
-//
-//    BDD firstTransition =
-//        mFactory.one()
-//                .and(m0)
-//                .and(not(b0))
-//                .and(not(m1))
-//                .and(not(b1))
-//
-//                .and(not(m0p))
-//                .and(not(b0p))
-//                .and(m1p)
-//                .and(not(b1p));
-//    BDD variableSet = mBDDBuilder.variableSet();
-//    BDDPairing pairing = mBDDBuilder.getPairing();
-//
-//    BDD secondState = mInitialBDD.relprod(firstTransition, variableSet).replace(pairing);
-//
-//    mInitialBDD.printDot();
-//    secondState.printDot();
+     /*
+     * We now start the breadth first search, using variant 2 in the sheets.
+     * We also store the intermediate BDDs to allow for backtracking
+     */
+    List<BDD> intermediateBDDs = new LinkedList<>();
 
+    BDD vOld = mBDDBuilder.zero();
+    BDD vNew = mInitialBDD;
+    while (!vOld.equals(vNew) && vNew.and(mGoalBDD).satCount(mVariableSet) == 0) {
+      intermediateBDDs.add(vNew);
+      vOld = vNew;
+      vNew = vOld.or(vOld.relprod(mTransitionBuilder.allTransitions(), mVariableSet).replace(mPairing));
+    }
+    if (vNew.and(mGoalBDD).satCount(mVariableSet) == 0) {
+      System.out.println("No solution found");
+    } else {
+      System.out.println("Solution found!");
+      System.out.println(findTrace(intermediateBDDs));
+    }
   }
 
+  //TODO could be implemented better so it works faster
+  // Currently it take the same amount of time as search to get the solution.
+  private String findTrace(final List<BDD> intermediateBDDs) {
+    StringBuilder stringBuilder = new StringBuilder();
+    ListIterator<BDD> iterator = intermediateBDDs.listIterator(intermediateBDDs.size());
+
+    while (iterator.hasPrevious()) {
+      BDD currentState = iterator.previous();
+
+      if (leadsToGoalState(currentState, "l" + stringBuilder)) {
+        stringBuilder.insert(0, 'l');
+      } else if (leadsToGoalState(currentState, "u" + stringBuilder)) {
+        stringBuilder.insert(0, 'u');
+      } else if (leadsToGoalState(currentState, "r" + stringBuilder)) {
+        stringBuilder.insert(0, 'r');
+      } else if (leadsToGoalState(currentState, "d" + stringBuilder)) {
+        stringBuilder.insert(0, 'd');
+      } else {
+        throw new IllegalStateException("Cannot backtrack current state!");
+      }
+    }
+
+    return stringBuilder.toString();
+  }
+
+  private boolean leadsToGoalState(final BDD from, final String moves) {
+    BDD test = from;
+    for (int i = 0; i < moves.length(); i++) {
+      switch (moves.charAt(i)) {
+        case 'l':
+          test = test.relprod(mTransitionBuilder.leftTransition(), mVariableSet).replace(mPairing);
+          break;
+        case 'u':
+          test = test.relprod(mTransitionBuilder.upTransition(), mVariableSet).replace(mPairing);
+          break;
+        case 'r':
+          test = test.relprod(mTransitionBuilder.rightTransition(), mVariableSet).replace(mPairing);
+          break;
+        case 'd':
+          test = test.relprod(mTransitionBuilder.downTransition(), mVariableSet).replace(mPairing);
+          break;
+        default:
+          throw new IllegalStateException("Illegal character in lurd string!");
+      }
+    }
+    return !test.and(mGoalBDD).isZero();
+  }
 
 }

@@ -2,7 +2,7 @@ package sokoban;
 
 public enum Field {
 
-  EMPTY, WALL, MAN, BLOCK, GOAL, BLOCK_ON_GOAL, MAN_ON_GOAL;
+  EMPTY, WALL, MAN, BOX, GOAL, BOX_ON_GOAL, MAN_ON_GOAL;
 
   public static Field convertFromScreenInput(final char c) {
     switch (c) {
@@ -15,9 +15,9 @@ public enum Field {
       case ' ':
         return EMPTY;
       case '$':
-        return BLOCK;
+        return BOX;
       case '*':
-        return BLOCK_ON_GOAL;
+        return BOX_ON_GOAL;
       case '+':
         return MAN_ON_GOAL;
       default:
@@ -35,9 +35,9 @@ public enum Field {
         return "g";
       case EMPTY:
         return "e";
-      case BLOCK:
+      case BOX:
         return "b";
-      case BLOCK_ON_GOAL:
+      case BOX_ON_GOAL:
         return "bog";
       case MAN_ON_GOAL:
         return "mog";
@@ -56,14 +56,18 @@ public enum Field {
         return '.';
       case EMPTY:
         return ' ';
-      case BLOCK:
+      case BOX:
         return '$';
-      case BLOCK_ON_GOAL:
+      case BOX_ON_GOAL:
         return '*';
       case MAN_ON_GOAL:
         return '+';
       default:
         throw new IllegalArgumentException("Invalid Field " + this);
     }
+  }
+
+  public boolean isGoal() {
+    return this == GOAL || this == MAN_ON_GOAL || this == BOX_ON_GOAL;
   }
 }

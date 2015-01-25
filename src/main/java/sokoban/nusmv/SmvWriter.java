@@ -185,7 +185,7 @@ class SmvWriter {
     for (int i = 0; i < screen.length; i++) {
       for (int j = 0; j < screen[i].length; j++) {
         Field field = screen[i][j];
-        if (field == Field.GOAL || field == Field.BLOCK_ON_GOAL || field == Field.MAN_ON_GOAL) {
+        if (field == Field.GOAL || field == Field.BOX_ON_GOAL || field == Field.MAN_ON_GOAL) {
           if (!first) {
             writer.write(" & ");
           }
