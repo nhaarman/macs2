@@ -7,12 +7,25 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
+import java.awt.AWTException;
+import java.awt.Robot;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.KeyEvent;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import sokoban.bdd.BDDSolver;
 import sokoban.nusmv.NuSMVSolver;
+
+import static java.util.stream.Collectors.toList;
 
 public class Sokoban {
 
@@ -27,8 +40,9 @@ public class Sokoban {
 
     options.addOption("h", "help", false, "Shows this help message");
     options.addOption("l", "lurd", true, "Initial lurd string");
-    options.addOption("B", false, "Use the BDDSolver (default)");
-    options.addOption("N", false, "Use the NuSMVSolver");
+    options.addOption("r", false, "Run JSoko if a solution has been found");
+    options.addOption("b", false, "Use the BDDSolver (default)");
+    options.addOption("n", false, "Use the NuSMVSolver");
 
     CommandLineParser parser = new BasicParser();
     CommandLine cmd = parser.parse(options, args);
@@ -61,7 +75,7 @@ public class Sokoban {
     Field[][] fields = new Parser().parse(file);
 
     Solver solver;
-    if (cmd.hasOption('N')) {
+    if (cmd.hasOption('n')) {
       solver = new NuSMVSolver(fields, file);
     } else {
       solver = new BDDSolver(fields);
@@ -73,6 +87,14 @@ public class Sokoban {
       System.err.println("Puzzle has a solution. Finding lurd. (Took " + (System.currentTimeMillis() - start) + "ms)");
       String lurd = solver.getLurd();
       System.out.println(lurd);
+
+      long time = System.currentTimeMillis() - start;
+      System.err.println("Total time: " + time + "ms");
+
+      if (options.hasOption("r")) {
+        new JSokoRunner().run(file, lurd);
+      }
+
     } else {
       if (!initialLurd.isEmpty()) {
         System.err.println("No solution for initial lurd: " + initialLurd);
@@ -80,12 +102,9 @@ public class Sokoban {
       System.out.println("no solution");
     }
 
-    long time = System.currentTimeMillis() - start;
-
-    System.err.println("Total time: " + time + "ms");
-
     System.exit(hasSolution ? 0 : 1);
   }
+
 
   private static boolean isValidLurd(final String lurd) {
     return lurd.chars().filter(c -> c != 'l' && c != 'u' && c != 'r' && c != 'd').count() == 0;
