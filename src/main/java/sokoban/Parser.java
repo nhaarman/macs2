@@ -19,9 +19,9 @@ public class Parser {
   }
 
   private Field[][] parse(final String[] lines) {
-    System.out.println("Parsing input:");
+    System.err.println("Parsing input:");
     for (String line : lines) {
-      System.out.println(line);
+      System.err.println(line);
     }
 
     // Determine number of rows and columns

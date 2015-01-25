@@ -27,11 +27,18 @@ public class NuSMVSolver implements Solver {
   }
 
   @Override
-  public void solve() throws IOException {
+  public boolean solve() throws IOException {
     String smvFilePath = mOriginalFile.getAbsolutePath() + ".smv";
 
     mSmvWriter.writeSmv(mFields, smvFilePath);
     executeNuSMVIfWanted(smvFilePath);
+
+    return true;
+  }
+
+  @Override
+  public String getLurd() {
+    throw new UnsupportedOperationException("Not yet implemented"); // TODO: Implement getLurd.
   }
 
   private void executeNuSMVIfWanted(final String smvFilePath) throws IOException {

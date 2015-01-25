@@ -4,6 +4,8 @@ import java.io.IOException;
 
 public interface Solver {
 
-  void solve() throws IOException;
+  boolean solve() throws IOException;
+
+  String getLurd();
 
 }
