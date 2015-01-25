@@ -8,8 +8,7 @@ import sokoban.Parser;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by rafal on 23.01.15.
@@ -31,10 +30,16 @@ public class Experiment
    private BDD initStateBDD;
    private BDD goalState;
 
+   private BDD allTransitions;
+   private BDD upTransition;
+   private BDD rightTransition;
+   private BDD downTransition;
+   private BDD leftTransition;
+
    public static void main(String[] args)
            throws IOException
    {
-      String filePath = "/home/rafal/0_Workspaces/IdeaProjects/macs2/screen.0";
+      String filePath = "/home/rafal/0_Workspaces/IdeaProjects/Sokoban2/screens/screen.387";
 
       Experiment experiment = new Experiment(filePath);
       experiment.run();
@@ -54,7 +59,7 @@ public class Experiment
       this.noOfBitsForWidth
               = Integer.SIZE - Integer.numberOfLeadingZeros(screenWidth);
 
-      this.factory = BDDFactory.init(10000, 10000); //TODO why those values?
+      this.factory = BDDFactory.init(10000000, 200000); //TODO why those values?
       this.varNum = noOfBitsForHeight
               + noOfBitsForWidth
               + screenWidth*screenHeight;
@@ -62,8 +67,10 @@ public class Experiment
 
       initVariablesSetAndPairing(varNum);
       initInitialStateAndGoalState(initialStateFields);
+      initAllTransitions();
    }
 
+   //////////////////////////////////// INITIALIZE VARIABLES AND PAIRING PART
    private void initVariablesSetAndPairing(int varNum)
    {
       mPairing = factory.makePair();
@@ -81,7 +88,8 @@ public class Experiment
       mSet = factory.makeSet(set);
    }
 
-   private BDD initInitialStateAndGoalState(final State state)
+   //////////////////////////////////// INITIALIZE STATE AND GOAL STATE PART
+   private void initInitialStateAndGoalState(final State state)
    {
       Field[][] fields = state.getFields();
       initStateBDD = factory.one();
@@ -113,8 +121,6 @@ public class Experiment
             }
          }
       }
-
-      return initStateBDD;
    }
 
    private BDD createStateForMan(int row, int column)
@@ -172,22 +178,26 @@ public class Experiment
       return screenWidth * i + j + noOfBitsForHeight + noOfBitsForWidth;
    }
 
-   ////////////////////////// BUILDER PART END ///////////////////////////////
-
-   ////////////////////////// SOLVER PART ///////////////////////////////
-
-   public void run()
+   //////////////////////////////////// INITIALIZE TRANSITIONS PART
+   private void initAllTransitions()
    {
-      allTransitions().printDot();
+      this.upTransition = directedTransition(Direction.UP);
+      this.rightTransition = directedTransition(Direction.RIGHT);
+      this.downTransition = directedTransition(Direction.DOWN);
+      this.leftTransition = directedTransition(Direction.LEFT);
+
+      this.allTransitions = upTransition
+              .or(rightTransition)
+              .or(downTransition)
+              .or(leftTransition);
    }
 
-   private BDD allTransitions()
+   private BDD directedTransition(final Direction direction)
    {
       BDD allTransitions = factory.zero();
       for (int i = 0; i < screenHeight; i++)
          for (int j = 0; j < screenWidth; j++)
-            for (Direction direction : Direction.values())
-               allTransitions.orWith(directedOnePointTransition(i, j, direction));
+            allTransitions.orWith(directedOnePointTransition(i, j, direction));
 
       return allTransitions;
    }
@@ -283,6 +293,85 @@ public class Experiment
          i += 2;
       }
       return blocks;
+   }
+
+   ////////////////////////// BUILDER PART END ///////////////////////////////
+
+   ////////////////////////// SOLVER PART ///////////////////////////////
+
+   public void run()
+   {
+      /*
+       * We now start the breadth first search, using variant 2 in the sheets.
+       * We also store the intermediate BDDs to allow for backtracking
+       */
+      List<BDD> mIntermediateBDDs = new LinkedList<>();
+
+      BDD vOld = factory.zero();
+      BDD vNew = initStateBDD;
+      while (!vOld.equals(vNew) && vNew.and(goalState).satCount(mSet) == 0) {
+         mIntermediateBDDs.add(vNew);
+         vOld = vNew;
+         vNew = vOld.or(vOld.relprod(allTransitions, mSet).replace(mPairing));
+      }
+      if (vNew.and(goalState).satCount(mSet) == 0) {
+         System.out.println("No solution found");
+      } else {
+         System.out.println("Solution found!");
+         System.out.println(findTrace(mIntermediateBDDs));
+      }
+   }
+
+   //TODO could be implemented better so it works faster
+   // Currently it take the same amount of time as search to get the solution.
+   private String findTrace(List<BDD> mIntermediateBDDs)
+   {
+      StringBuilder stringBuilder = new StringBuilder();
+      ListIterator<BDD> iterator = mIntermediateBDDs.listIterator(mIntermediateBDDs.size());
+
+      while (iterator.hasPrevious())
+      {
+         BDD currentState = iterator.previous();
+
+         if(leadsToGoalState(currentState, "l" + stringBuilder))
+            stringBuilder.insert(0, 'l');
+         else if(leadsToGoalState(currentState, "u" + stringBuilder))
+            stringBuilder.insert(0, 'u');
+         else if(leadsToGoalState(currentState, "r" + stringBuilder))
+            stringBuilder.insert(0, 'r');
+         else if(leadsToGoalState(currentState, "d" + stringBuilder))
+            stringBuilder.insert(0, 'd');
+         else
+            throw new IllegalStateException("Cannot backtrack current state!");
+      }
+
+      return stringBuilder.toString();
+   }
+
+   private boolean leadsToGoalState(final BDD from, final String moves)
+   {
+      BDD test = from;
+      for (int i = 0; i < moves.length(); i++)
+      {
+         switch (moves.charAt(i))
+         {
+            case 'l':
+               test = test.relprod(leftTransition, mSet).replace(mPairing);
+               break;
+            case 'u':
+               test = test.relprod(upTransition, mSet).replace(mPairing);
+               break;
+            case 'r':
+               test = test.relprod(rightTransition, mSet).replace(mPairing);
+               break;
+            case 'd':
+               test = test.relprod(downTransition, mSet).replace(mPairing);
+               break;
+            default:
+               throw new IllegalStateException("Illegal character in lurd string!");
+         }
+      }
+      return !test.and(goalState).isZero();
    }
 
    ////////////////////////// SOLVER PART END ///////////////////////////////
