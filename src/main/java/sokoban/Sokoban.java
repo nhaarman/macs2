@@ -26,6 +26,7 @@ public class Sokoban {
     Options options = new Options();
 
     options.addOption("h", "help", false, "Shows this help message");
+    options.addOption("l", "lurd", true, "Initial lurd string");
     options.addOption("B", false, "Use the BDDSolver (default)");
     options.addOption("N", false, "Use the NuSMVSolver");
 
@@ -40,6 +41,15 @@ public class Sokoban {
     if (cmd.hasOption('B') && cmd.hasOption('N')) {
       System.err.println("-N cannot be used in conjunction with -B");
       return;
+    }
+
+    String initialLurd = "";
+    if (cmd.hasOption('l')) {
+      initialLurd = cmd.getOptionValue('l');
+      if (!isValidLurd(initialLurd)) {
+        System.err.println("Invalid initial lurd string: " + initialLurd);
+        return;
+      }
     }
 
     File file = new File(args[0]);
@@ -58,12 +68,15 @@ public class Sokoban {
     }
 
     long start = System.currentTimeMillis();
-    boolean hasSolution = solver.solve();
+    boolean hasSolution = solver.solve(initialLurd);
     if (hasSolution) {
       System.err.println("Puzzle has a solution. Finding lurd. (Took " + (System.currentTimeMillis() - start) + "ms)");
       String lurd = solver.getLurd();
       System.out.println(lurd);
     } else {
+      if (!initialLurd.isEmpty()) {
+        System.err.println("No solution for initial lurd: " + initialLurd);
+      }
       System.out.println("no solution");
     }
 
@@ -72,5 +85,9 @@ public class Sokoban {
     System.err.println("Total time: " + time + "ms");
 
     System.exit(hasSolution ? 0 : 1);
+  }
+
+  private static boolean isValidLurd(final String lurd) {
+    return lurd.chars().filter(c -> c != 'l' && c != 'u' && c != 'r' && c != 'd').count() == 0;
   }
 }

@@ -3,7 +3,6 @@ package sokoban.bdd;
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDPairing;
 
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -15,15 +14,13 @@ public class BDDSolver implements Solver {
 
   private final BDDBuilder mBDDBuilder;
   private final TransitionBuilder mTransitionBuilder;
-
-  private final BDD mInitialBDD;
   private final BDD mGoalBDD;
-
   private final BDD mVariableSet;
   private final BDDPairing mPairing;
-
+  private BDD mInitialBDD;
   private boolean mSolutionFound;
   private List<BDD> mIntermediateBDDs;
+  private String mInitialLurd;
 
   public BDDSolver(final Field[][] fields) {
     Screen screen = new Screen(fields);
@@ -40,7 +37,15 @@ public class BDDSolver implements Solver {
 
   @Override
   public boolean solve() {
-     /*
+    return solve("");
+  }
+
+  @Override
+  public boolean solve(final String initialLurd) {
+    mInitialLurd = initialLurd;
+    mInitialBDD = applyLurd(mInitialBDD, initialLurd);
+
+    /*
      * We now start the breadth first search, using variant 2 in the sheets.
      * We also store the intermediate BDDs to allow for backtracking
      */
@@ -51,11 +56,12 @@ public class BDDSolver implements Solver {
     while (!vOld.equals(vNew) && vNew.and(mGoalBDD).satCount(mVariableSet) == 0) {
       mIntermediateBDDs.add(vNew);
       vOld = vNew;
-      vNew = vOld.or(vOld.relprod(mTransitionBuilder.allTransitions(), mVariableSet).replace(mPairing));
+      vNew = vOld.or(applyTransition(vOld, mTransitionBuilder.allTransitions()));
     }
 
     mSolutionFound = vNew.and(mGoalBDD).satCount(mVariableSet) != 0;
     return mSolutionFound;
+
   }
 
   @Override
@@ -64,7 +70,7 @@ public class BDDSolver implements Solver {
       throw new IllegalStateException("No solution found!");
     }
 
-    return findTrace();
+    return mInitialLurd + findTrace();
   }
 
   //TODO could be implemented better so it works faster
@@ -92,27 +98,37 @@ public class BDDSolver implements Solver {
     return stringBuilder.toString();
   }
 
-  private boolean leadsToGoalState(final BDD from, final String moves) {
-    BDD test = from;
-    for (int i = 0; i < moves.length(); i++) {
-      switch (moves.charAt(i)) {
+  private boolean leadsToGoalState(final BDD from, final String lurd) {
+    return !applyLurd(from, lurd).and(mGoalBDD).isZero();
+  }
+
+  private BDD applyLurd(final BDD from, final String lurd) {
+    BDD result = from;
+    for (int i = 0; i < lurd.length(); i++) {
+      BDD transition;
+      switch (lurd.charAt(i)) {
         case 'l':
-          test = test.relprod(mTransitionBuilder.leftTransition(), mVariableSet).replace(mPairing);
+          transition = mTransitionBuilder.leftTransition();
           break;
         case 'u':
-          test = test.relprod(mTransitionBuilder.upTransition(), mVariableSet).replace(mPairing);
+          transition = mTransitionBuilder.upTransition();
           break;
         case 'r':
-          test = test.relprod(mTransitionBuilder.rightTransition(), mVariableSet).replace(mPairing);
+          transition = mTransitionBuilder.rightTransition();
           break;
         case 'd':
-          test = test.relprod(mTransitionBuilder.downTransition(), mVariableSet).replace(mPairing);
+          transition = mTransitionBuilder.downTransition();
           break;
         default:
-          throw new IllegalStateException("Illegal character in lurd string!");
+          throw new IllegalArgumentException("Invalid character in lurd string: " + lurd.charAt(i));
       }
+      result = applyTransition(result, transition);
     }
-    return !test.and(mGoalBDD).isZero();
+    return result;
+  }
+
+  private BDD applyTransition(final BDD bdd, final BDD transition) {
+    return bdd.relprod(transition, mVariableSet).replace(mPairing);
   }
 
 }
