@@ -1,11 +1,15 @@
-To build:
+# Build and run:
 
     ./gradlew build
-    
-To run tests:
+    java -jar build/libs/sokoban.jar screens/screen.125
+
+# Run tests:
 
     ./gradlew test
-    
-To run:
 
-    ./sokoban.sh -f screen.2000
+
+# Troubleshooting
+
+    Exception in thread "main" java.lang.UnsupportedClassVersionError: sokoban/Sokoban : Unsupported major.minor version 52.0
+
+Sokoban has been built using Java8. Make sure you're using Java8 to run the program.
