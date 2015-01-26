@@ -130,7 +130,6 @@ public class TransitionBuilder {
   }
 
   private BDD directedOnePointTransition(final int i, final int j, final Direction direction) {
-    // TODO make this method smaller
     int[] values = getRowsAndColsForDirection(i, j, direction);
     int row0 = i;
     int col0 = j;
@@ -192,12 +191,12 @@ public class TransitionBuilder {
   private BDD directedOnePointTransitionReversed(final int i, final int j, final Direction direction)
   {
     int[] values = getRowsAndColsForDirection(i, j, direction);
-    int rowb1 = values[0];
+    int rowb1 = values[0]; //where the man is moving backward
     int colb1 = values[1];
-    int row0 = i;
+    int row0 = i; //where the man is now
     int col0 = j;
-    int row1 = values[4];
-    int col1 = values[5];
+    int row1 = values[2]; //where potentially the box stays
+    int col1 = values[3];
 
     Field[][] fields = mScreen.getFields();
     BDD noMove = mBDDBuilder.zero();
@@ -222,7 +221,7 @@ public class TransitionBuilder {
     Set<Integer> ignore = new HashSet<>();
     ignore.add(mBDDBuilder.translate(row0, col0, REGULAR));
     ignore.add(mBDDBuilder.translate(row1, col1, REGULAR));
-    BDD moveManAndBlock = mBDDBuilder.createStateForMan(row0, col0)
+    BDD moveMaWithBlock = mBDDBuilder.createStateForMan(row0, col0)
             .and(mBDDBuilder.createStateForMan(rowb1, colb1).replace(mBDDBuilder.getReversedPairing()))
             .and(mBDDBuilder.negatedPrimaryVarFor(row1, col1))
             .and(mBDDBuilder.primaryVarFor(row0, col0))
@@ -231,21 +230,21 @@ public class TransitionBuilder {
     return placeToMoveBackward.ite(
             noMove,
             placeWherePotentiallyBoxWasPushed.ite(//if true then there is a box
-              moveManAndBlock, //if true then box was pushed there
+              moveMaWithBlock.or(moveManOnly), //if true then ether block was moved or not. We cannot know that
               moveManOnly// if false then there were no box
     ));
   }
 
   /**
    *
-   * @param i
-   * @param j
-   * @param direction an array where two first elements are indexes of field
+   * @param i         row index
+   * @param j         column index
+   * @param direction direction of transfer
+   * @return          an array where two first elements are indexes of field
    *                  behind the starting position of a man, next two elements
    *                  are the indexes of a field where man is moving towards,
    *                  and last two elements are indexes of field where bax will
    *                  be moved if th is pushed.
-   * @return
    */
   private int[] getRowsAndColsForDirection(final int i, final int j, final Direction direction) {
     switch (direction) {

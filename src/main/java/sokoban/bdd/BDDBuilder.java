@@ -4,7 +4,6 @@ import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
 import net.sf.javabdd.BDDPairing;
 
-import java.lang.reflect.Method;
 import java.util.stream.IntStream;
 
 import sokoban.Field;
@@ -142,7 +141,6 @@ class BDDBuilder {
   }
 
   BDD createStateForMan(final int row, final int column) {
-    // TODO check if the order matters
     BDD result = mFactory.one();
 
     Boolean[] rowBool = intToBits(mNoOfBitsForHeight, row);

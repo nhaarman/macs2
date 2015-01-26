@@ -7,25 +7,11 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import java.awt.AWTException;
-import java.awt.Robot;
-import java.awt.Toolkit;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.StringSelection;
-import java.awt.event.KeyEvent;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import sokoban.bdd.BDDSolver;
 import sokoban.nusmv.NuSMVSolver;
-
-import static java.util.stream.Collectors.toList;
 
 public class Sokoban {
 
@@ -52,8 +38,8 @@ public class Sokoban {
       return;
     }
 
-    if (cmd.hasOption('B') && cmd.hasOption('N')) {
-      System.err.println("-N cannot be used in conjunction with -B");
+    if (cmd.hasOption('b') && cmd.hasOption('n')) {
+      System.err.println("-n cannot be used in conjunction with -b");
       return;
     }
 
