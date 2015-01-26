@@ -18,7 +18,7 @@ public class Parser {
     return parse(readLines(file));
   }
 
-  private Field[][] parse(final String[] lines) {
+  public Field[][] parse(final String[] lines) {
     System.err.println("Parsing input:");
     for (String line : lines) {
       System.err.println(line);

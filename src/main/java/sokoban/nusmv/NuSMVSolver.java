@@ -37,6 +37,11 @@ public class NuSMVSolver implements Solver {
   }
 
   @Override
+  public boolean solve(final String initialLurd) {
+    throw new UnsupportedOperationException("Not yet implemented"); // TODO: Implement solve.
+  }
+
+  @Override
   public String getLurd() {
     throw new UnsupportedOperationException("Not yet implemented"); // TODO: Implement getLurd.
   }
