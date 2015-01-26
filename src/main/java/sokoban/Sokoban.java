@@ -9,6 +9,7 @@ import org.apache.commons.cli.ParseException;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 
 import sokoban.bdd.BDDSolver;
 import sokoban.nusmv.NuSMVSolver;
@@ -19,12 +20,14 @@ public class Sokoban {
   }
 
   public static void main(final String[] args) throws IOException, ParseException {
+    System.setErr(new FilteredPrintStream(System.err));
+    System.setOut(new FilteredPrintStream(System.out));
+
     Options options = new Options();
 
     options.addOption("h", "help", false, "Shows this help message");
     options.addOption("B", false, "Use the BDDSolver (default)");
     options.addOption("N", false, "Use the NuSMVSolver");
-    options.addOption("W", false, "Don't show warnings");
 
     CommandLineParser parser = new BasicParser();
     CommandLine cmd = parser.parse(options, args);
@@ -35,35 +38,39 @@ public class Sokoban {
     }
 
     if (cmd.hasOption('B') && cmd.hasOption('N')) {
-      System.out.println("-N cannot be used in conjunction with -B");
+      System.err.println("-N cannot be used in conjunction with -B");
       return;
     }
 
     File file = new File(args[0]);
     if (!file.exists()) {
-      System.out.println("File does not exist");
+      System.err.println("File does not exist");
       return;
-    }
-
-    if (cmd.hasOption('W')) {
-      System.err.close();
     }
 
     Field[][] fields = new Parser().parse(file);
 
     Solver solver;
     if (cmd.hasOption('N')) {
-      System.out.println("Using NuSMVSolver to solve sokoban puzzle");
       solver = new NuSMVSolver(fields, file);
     } else {
-      System.out.println("Using BDDSolver to solve sokoban puzzle");
       solver = new BDDSolver(fields);
     }
 
     long start = System.currentTimeMillis();
-    solver.solve();
+    boolean hasSolution = solver.solve();
+    if (hasSolution) {
+      System.err.println("Puzzle has a solution. Finding lurd. (Took " + (System.currentTimeMillis() - start) + "ms)");
+      String lurd = solver.getLurd();
+      System.out.println(lurd);
+    } else {
+      System.out.println("no solution");
+    }
+
     long time = System.currentTimeMillis() - start;
 
-    System.out.println("Took: " + time + "ms");
+    System.err.println("Total time: " + time + "ms");
+
+    System.exit(hasSolution ? 0 : 1);
   }
 }

@@ -22,6 +22,9 @@ public class BDDSolver implements Solver {
   private final BDD mVariableSet;
   private final BDDPairing mPairing;
 
+  private boolean mSolutionFound;
+  private List<BDD> mIntermediateBDDs;
+
   public BDDSolver(final Field[][] fields) {
     Screen screen = new Screen(fields);
 
@@ -36,33 +39,39 @@ public class BDDSolver implements Solver {
   }
 
   @Override
-  public void solve() throws IOException {
+  public boolean solve() {
      /*
      * We now start the breadth first search, using variant 2 in the sheets.
      * We also store the intermediate BDDs to allow for backtracking
      */
-    List<BDD> intermediateBDDs = new LinkedList<>();
+    mIntermediateBDDs = new LinkedList<>();
 
     BDD vOld = mBDDBuilder.zero();
     BDD vNew = mInitialBDD;
     while (!vOld.equals(vNew) && vNew.and(mGoalBDD).satCount(mVariableSet) == 0) {
-      intermediateBDDs.add(vNew);
+      mIntermediateBDDs.add(vNew);
       vOld = vNew;
       vNew = vOld.or(vOld.relprod(mTransitionBuilder.allTransitions(), mVariableSet).replace(mPairing));
     }
-    if (vNew.and(mGoalBDD).satCount(mVariableSet) == 0) {
-      System.out.println("No solution found");
-    } else {
-      System.out.println("Solution found!");
-      System.out.println(findTrace(intermediateBDDs));
+
+    mSolutionFound = vNew.and(mGoalBDD).satCount(mVariableSet) != 0;
+    return mSolutionFound;
+  }
+
+  @Override
+  public String getLurd() {
+    if (!mSolutionFound) {
+      throw new IllegalStateException("No solution found!");
     }
+
+    return findTrace();
   }
 
   //TODO could be implemented better so it works faster
   // Currently it take the same amount of time as search to get the solution.
-  private String findTrace(final List<BDD> intermediateBDDs) {
+  private String findTrace() {
     StringBuilder stringBuilder = new StringBuilder();
-    ListIterator<BDD> iterator = intermediateBDDs.listIterator(intermediateBDDs.size());
+    ListIterator<BDD> iterator = mIntermediateBDDs.listIterator(mIntermediateBDDs.size());
 
     while (iterator.hasPrevious()) {
       BDD currentState = iterator.previous();
