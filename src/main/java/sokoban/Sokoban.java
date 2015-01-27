@@ -77,7 +77,7 @@ public class Sokoban {
       long time = System.currentTimeMillis() - start;
       System.err.println("Total time: " + time + "ms");
 
-      if (options.hasOption("r")) {
+      if (cmd.hasOption("r")) {
         new JSokoRunner().run(file, lurd);
       }
 
