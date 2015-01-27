@@ -4,3 +4,5 @@ classes/**
 output/**
 *.iml
 .gradle/**
+JSoko_1.73/leveldata/leveldataDB.properties
+JSoko_1.73/user_settings.ini
