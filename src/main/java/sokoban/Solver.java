@@ -6,7 +6,7 @@ public interface Solver {
 
   boolean solve() throws IOException;
 
-  boolean solve(String initialLurd);
+  boolean solve(String initialLurd) throws IOException;
 
   String getLurd();
 

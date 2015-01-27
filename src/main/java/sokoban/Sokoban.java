@@ -4,6 +4,7 @@ import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
@@ -11,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 
 import sokoban.bdd.BDDSolver;
-import sokoban.nusmv.NuSMVSolver;
 
 public class Sokoban {
 
@@ -19,7 +19,6 @@ public class Sokoban {
   }
 
   public static void main(final String[] args) throws IOException, ParseException {
-    System.setErr(new FilteredPrintStream(System.err));
     System.setOut(new FilteredPrintStream(System.out));
 
     Options options = new Options();
@@ -27,8 +26,13 @@ public class Sokoban {
     options.addOption("h", "help", false, "Shows this help message");
     options.addOption("l", "lurd", true, "Initial lurd string");
     options.addOption("r", false, "Run JSoko if a solution has been found");
-    options.addOption("b", false, "Use the BDDSolver (default)");
-    options.addOption("n", false, "Use the NuSMVSolver");
+    options.addOption(
+        OptionBuilder
+            .hasArg()
+            .withArgName("true/false")
+            .withDescription("Filter JavaBDD messages such as garbage collection and cache resizing (default true)")
+            .create('f')
+    );
 
     CommandLineParser parser = new BasicParser();
     CommandLine cmd = parser.parse(options, args);
@@ -38,9 +42,8 @@ public class Sokoban {
       return;
     }
 
-    if (cmd.hasOption('b') && cmd.hasOption('n')) {
-      System.err.println("-n cannot be used in conjunction with -b");
-      return;
+    if (!cmd.hasOption('f') || "true".equals(cmd.getOptionValue('f'))) {
+      System.setErr(new FilteredPrintStream(System.err));
     }
 
     String initialLurd = "";
@@ -60,13 +63,7 @@ public class Sokoban {
 
     Field[][] fields = new Parser().parse(file);
 
-    Solver solver;
-    if (cmd.hasOption('n')) {
-      solver = new NuSMVSolver(fields, file);
-    } else {
-      solver = new BDDSolver(fields);
-    }
-
+    Solver solver = new BDDSolver(fields);
     long start = System.currentTimeMillis();
     boolean hasSolution = solver.solve(initialLurd);
     if (hasSolution) {
