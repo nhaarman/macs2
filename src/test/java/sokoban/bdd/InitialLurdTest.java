@@ -31,6 +31,9 @@ public class InitialLurdTest {
   public void emptyLurd_returnsTrue() {
     boolean result = mBDDSolver.solve("");
     assertThat(result, is(true));
+
+    String lurdResult = mBDDSolver.getLurd();
+    assertThat(lurdResult, is("urrdl"));
   }
 
   @Test

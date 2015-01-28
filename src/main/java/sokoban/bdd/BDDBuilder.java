@@ -30,8 +30,8 @@ class BDDBuilder {
   BDDBuilder(final Screen screen) {
     mScreen = screen;
 
-    mNoOfBitsForHeight = Integer.SIZE - Integer.numberOfLeadingZeros(screen.height());
-    mNoOfBitsForWidth = Integer.SIZE - Integer.numberOfLeadingZeros(screen.width());
+    mNoOfBitsForHeight = Integer.SIZE - Integer.numberOfLeadingZeros(screen.height()-1);
+    mNoOfBitsForWidth = Integer.SIZE - Integer.numberOfLeadingZeros(screen.width()-1);
 
     mVarNum = mNoOfBitsForHeight + mNoOfBitsForWidth + screen.width() * screen.height();
 
