@@ -7,10 +7,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 
-import sokoban.Field;
-import sokoban.Solver;
+import sokoban.parser.Field;
+import sokoban.parser.Screen;
 
-public class BDDSolver implements Solver {
+public class BDDSolver {
 
   private final BDDBuilder mBDDBuilder;
   private final TransitionBuilder mTransitionBuilder;
@@ -36,14 +36,6 @@ public class BDDSolver implements Solver {
     mPairing = mBDDBuilder.getPairing();
   }
 
-
-  @Override
-  public boolean solve() {
-    return solve("");
-  }
-
-
-  @Override
   public boolean solve(final String initialLurd) {
     mInitialLurd = initialLurd;
     mInitialBDD = applyLurd(mInitialBDD, initialLurd);
@@ -70,8 +62,6 @@ public class BDDSolver implements Solver {
 
   }
 
-
-  @Override
   public String getLurd() {
     if (!mSolutionFound) {
       throw new IllegalStateException("No solution found!");
@@ -79,7 +69,6 @@ public class BDDSolver implements Solver {
 
     return mInitialLurd + findTrace();
   }
-
 
   private String findTrace() {
     StringBuilder stringBuilder = new StringBuilder();

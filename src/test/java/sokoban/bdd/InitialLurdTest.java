@@ -3,8 +3,8 @@ package sokoban.bdd;
 import org.junit.Before;
 import org.junit.Test;
 
-import sokoban.Field;
-import sokoban.Parser;
+import sokoban.parser.Field;
+import sokoban.parser.Parser;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;

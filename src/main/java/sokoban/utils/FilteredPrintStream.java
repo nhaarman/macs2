@@ -1,4 +1,4 @@
-package sokoban;
+package sokoban.utils;
 
 import java.io.PrintStream;
 import java.util.stream.Stream;

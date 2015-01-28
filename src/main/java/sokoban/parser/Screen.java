@@ -1,12 +1,10 @@
-package sokoban.bdd;
+package sokoban.parser;
 
-import sokoban.Field;
-
-class Screen {
+public class Screen {
 
   private final Field[][] mFields;
 
-  Screen(final Field[][] fields) {
+  public Screen(final Field[][] fields) {
     mFields = fields;
   }
 

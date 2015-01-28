@@ -5,12 +5,13 @@ import net.sf.javabdd.BDD;
 import java.util.HashSet;
 import java.util.Set;
 
-import sokoban.Field;
+import sokoban.parser.Field;
+import sokoban.parser.Screen;
 
-import static sokoban.bdd.Utils.or;
+import static sokoban.bdd.BDDUtils.or;
 import static sokoban.bdd.VariableType.REGULAR;
 
-public class TransitionBuilder {
+class TransitionBuilder {
 
   private final BDDBuilder mBDDBuilder;
   private final Screen mScreen;
@@ -27,7 +28,7 @@ public class TransitionBuilder {
   private BDD mDownTransitionReversed;
   private BDD mLeftTransitionReversed;
 
-  public TransitionBuilder(final BDDBuilder bddBuilder, final Screen screen) {
+  TransitionBuilder(final BDDBuilder bddBuilder, final Screen screen) {
     mBDDBuilder = bddBuilder;
     mScreen = screen;
   }
@@ -180,16 +181,19 @@ public class TransitionBuilder {
     BDD allTransitionsReversed = mBDDBuilder.zero();
     for (int i = 0; i < mScreen.height(); i++) {
       for (int j = 0; j < mScreen.width(); j++) {
-        allTransitionsReversed.orWith(directedOnePointTransitionReversed(i, j,
-                direction));
+        allTransitionsReversed.orWith(
+            directedOnePointTransitionReversed(
+                i, j,
+                direction
+            )
+        );
       }
     }
 
     return allTransitionsReversed;
   }
 
-  private BDD directedOnePointTransitionReversed(final int i, final int j, final Direction direction)
-  {
+  private BDD directedOnePointTransitionReversed(final int i, final int j, final Direction direction) {
     int[] values = getRowsAndColsForDirection(i, j, direction);
     int rowb1 = values[0]; //where the man is moving backward
     int colb1 = values[1];
@@ -207,13 +211,13 @@ public class TransitionBuilder {
 
     BDD placeToMoveBackward = mBDDBuilder.varFor(rowb1, colb1);
     BDD moveManOnly = mBDDBuilder.createStateForMan(row0, col0)
-            .and(mBDDBuilder.createStateForMan(rowb1, colb1).replace(mBDDBuilder.getReversedPairing()))
-            .and(sameBlocks());
+                                 .and(mBDDBuilder.createStateForMan(rowb1, colb1).replace(mBDDBuilder.getReversedPairing()))
+                                 .and(sameBlocks());
 
     if (fields[row1][col1] == Field.WALL) {
       return placeToMoveBackward.ite(
-              noMove, //there is a box so man did not come from there
-              moveManOnly// we can move because it is empty
+          noMove, //there is a box so man did not come from there
+          moveManOnly// we can move because it is empty
       );
     }
 
@@ -222,40 +226,41 @@ public class TransitionBuilder {
     ignore.add(mBDDBuilder.translate(row0, col0, REGULAR));
     ignore.add(mBDDBuilder.translate(row1, col1, REGULAR));
     BDD moveMaWithBlock = mBDDBuilder.createStateForMan(row0, col0)
-            .and(mBDDBuilder.createStateForMan(rowb1, colb1).replace(mBDDBuilder.getReversedPairing()))
-            .and(mBDDBuilder.negatedPrimaryVarFor(row1, col1))
-            .and(mBDDBuilder.primaryVarFor(row0, col0))
-            .and(sameBlocksExcept(ignore));
+                                     .and(mBDDBuilder.createStateForMan(rowb1, colb1).replace(mBDDBuilder.getReversedPairing()))
+                                     .and(mBDDBuilder.negatedPrimaryVarFor(row1, col1))
+                                     .and(mBDDBuilder.primaryVarFor(row0, col0))
+                                     .and(sameBlocksExcept(ignore));
 
     return placeToMoveBackward.ite(
-            noMove,
-            placeWherePotentiallyBoxWasPushed.ite(//if true then there is a box
-              moveMaWithBlock.or(moveManOnly), //if true then ether block was moved or not. We cannot know that
-              moveManOnly// if false then there were no box
-    ));
+        noMove,
+        placeWherePotentiallyBoxWasPushed.ite(//if true then there is a box
+                                              moveMaWithBlock.or(moveManOnly), //if true then ether block was moved or not. We cannot know that
+                                              moveManOnly// if false then there were no box
+        )
+    );
   }
 
   /**
-   *
    * @param i         row index
    * @param j         column index
    * @param direction direction of transfer
-   * @return          an array where two first elements are indexes of field
-   *                  behind the starting position of a man, next two elements
-   *                  are the indexes of a field where man is moving towards,
-   *                  and last two elements are indexes of field where bax will
-   *                  be moved if th is pushed.
+   *
+   * @return an array where two first elements are indexes of field
+   * behind the starting position of a man, next two elements
+   * are the indexes of a field where man is moving towards,
+   * and last two elements are indexes of field where bax will
+   * be moved if th is pushed.
    */
   private int[] getRowsAndColsForDirection(final int i, final int j, final Direction direction) {
     switch (direction) {
       case DOWN:
-        return new int[]{i-1, j, i + 1, j, i + 2, j};
+        return new int[]{i - 1, j, i + 1, j, i + 2, j};
       case LEFT:
-        return new int[]{i, j+1, i, j - 1, i, j - 2};
+        return new int[]{i, j + 1, i, j - 1, i, j - 2};
       case UP:
-        return new int[]{i+1, j, i - 1, j, i - 2, j};
+        return new int[]{i + 1, j, i - 1, j, i - 2, j};
       case RIGHT:
-        return new int[]{i, j-1, i, j + 1, i, j + 2};
+        return new int[]{i, j - 1, i, j + 1, i, j + 2};
       default:
         throw new IllegalArgumentException("Invalid direction");
     }

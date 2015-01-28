@@ -16,7 +16,7 @@ enum Direction {
       case DOWN:
         return "d";
       default:
-        throw new IllegalArgumentException("Invalid Move");
+        throw new IllegalArgumentException("Invalid move");
     }
   }
 }

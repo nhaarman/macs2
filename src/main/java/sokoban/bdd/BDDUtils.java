@@ -5,9 +5,9 @@ import net.sf.javabdd.BDD;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
-class Utils {
+class BDDUtils {
 
-  private Utils() {
+  private BDDUtils() {
   }
 
   /**

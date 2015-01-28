@@ -1,4 +1,4 @@
-package sokoban;
+package sokoban.parser;
 
 public enum Field {
 

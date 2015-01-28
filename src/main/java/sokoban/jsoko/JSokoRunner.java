@@ -1,4 +1,4 @@
-package sokoban;
+package sokoban.jsoko;
 
 import java.awt.AWTException;
 import java.awt.Robot;

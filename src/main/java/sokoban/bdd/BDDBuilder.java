@@ -6,7 +6,8 @@ import net.sf.javabdd.BDDPairing;
 
 import java.util.stream.IntStream;
 
-import sokoban.Field;
+import sokoban.parser.Field;
+import sokoban.parser.Screen;
 
 import static sokoban.bdd.VariableType.PRIME;
 import static sokoban.bdd.VariableType.REGULAR;
@@ -145,7 +146,7 @@ class BDDBuilder {
 
     Boolean[] rowBool = intToBits(mNoOfBitsForHeight, row);
     Boolean[] colBool = intToBits(mNoOfBitsForWidth, column);
-    Boolean[] both = Utils.concat(rowBool, colBool);
+    Boolean[] both = BDDUtils.concat(rowBool, colBool);
 
     for (int i = 0; i < both.length; i++) {
       if (both[i]) {
